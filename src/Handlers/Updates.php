@@ -28,19 +28,6 @@ use Throwable;
 
 use function Amp\async;
 
-/*
-updates.state#a56c2a3e pts:int qts:int date:int seq:int unread_count:int = updates.State;
-
-updates.differenceEmpty#5d75a138 date:int seq:int = updates.Difference;
-updates.difference#f49ca0 new_messages:Vector<Message> new_encrypted_messages:Vector<EncryptedMessage> other_updates:Vector<Update> chats:Vector<Chat> users:Vector<User> state:updates.State = updates.Difference;
-updates.differenceSlice#a8fb1981 new_messages:Vector<Message> new_encrypted_messages:Vector<EncryptedMessage> other_updates:Vector<Update> chats:Vector<Chat> users:Vector<User> intermediate_state:updates.State = updates.Difference;
-updates.differenceTooLong#4afe8f6d pts:int = updates.Difference;
-
-updates.channelDifferenceEmpty#3e11affb flags:# final:flags.0?true pts:int timeout:flags.1?int = updates.ChannelDifference;
-updates.channelDifferenceTooLong#a4bcc6fe flags:# final:flags.0?true timeout:flags.1?int dialog:Dialog messages:Vector<Message> chats:Vector<Chat> users:Vector<User> = updates.ChannelDifference;
-updates.channelDifference#2064674e flags:# final:flags.0?true pts:int timeout:flags.1?int new_messages:Vector<Message> other_updates:Vector<Update> chats:Vector<Chat> users:Vector<User> = updates.ChannelDifference;
-*/
-
 final class Updates {
 	public readonly object $load;
 	private array $handlers;
@@ -78,25 +65,6 @@ final class Updates {
 			unset($this->handlers[$name]);
 		endif;
 	}
-	/*
-	public function waitForEvents(array $updates,callable $callback = null,int $timeout = 0) : object {
-		$deferred = new DeferredFuture();
-		$future = $deferred->getFuture();
-		$filter = new Filter\Update(...$updates);
-		$checker = function(object $update) use($deferred,$filter,$callback) : void {
-			if($filter->apply($update)):
-				if(is_null($callback) or async($callback,$update)->await()):
-					$deferred->complete($update);
-				endif;
-			endif;
-		};
-		$this->addEventHandler($checker);
-		$cancellation = $timeout > 0 ? new TimeoutCancellation($timeout) : null;
-		$update = $future->await($cancellation);
-		$this->removeEventHandler($checker);
-		return $update;
-	}
-	*/
 	public function fetchOneUpdate(array $updates,? callable $callback = null,float $timeout = 0) : object {
 		$unique = uniqid('LiveProto');
 		$deferredFuture = new DeferredFuture();
@@ -380,20 +348,6 @@ final class Updates {
 				break;
 			# updateShortSentMessage#9015e101 flags:# out:flags.1?true id:int pts:int pts_count:int date:int media:flags.9?MessageMedia entities:flags.7?Vector<MessageEntity> ttl_period:flags.25?int = Updates; #
 			case 'updateShortSentMessage':
-				# I haven't received such an update yet, I'll add it whenever needed #
-				/*
-				$difference = $this->client->get_difference(pts : $update->pts - 1,date : $update->date,pts_limit : 1);
-				$message = $difference[false]->new_messages[false];
-				$update = new \Tak\Liveproto\Tl\Types\Other\UpdateNewMessage(['message'=>$message,'pts'=>$update->pts,'pts_count'=>$update->pts_count]);
-				$this->applyUpdate($update);
-				*/
-				/*
-				$newMessages = $this->recoveringGaps();
-				# I don't know if there might be some interference in the line below or not #
-				$message = $newMessages[false];
-				$update = new \Tak\Liveproto\Tl\Types\Other\UpdateNewMessage(['message'=>$message,'pts'=>$update->pts,'pts_count'=>$update->pts_count]);
-				$this->applyUpdate($update);
-				*/
 				Logging::log('Process Updates','I received updateShortSentMessage',E_NOTICE);
 				$local_pts = intval($update->pts - $update->pts_count);
 				$difference = $this->client->updates->getDifference(pts : $local_pts,date : $update->date,pts_limit : $update->pts_count,qts : 0);

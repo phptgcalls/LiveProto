@@ -72,7 +72,6 @@ final class Session {
 				$server = $this->servers[array_rand($this->servers)];
 			endif;
 		endif;
-		// 'access_hash'=>['chats'=>[],'users'=>[],'secrets'=>[]] //
 		return new Content(['id'=>Helper::generateRandomLong(),'api_id'=>0,'api_hash'=>(string) null,'dc'=>$server['dc'],'ip'=>($this->ipv6 ? $server['ipv6'] : $server['ip']),'port'=>$server['port'],'auth_key'=>new \stdClass,'salt'=>0,'sequence'=>0,'time_offset'=>0,'last_msg_id'=>0,'logout_tokens'=>[],'peers'=>new CachedPeers($this->name),'state'=>(object) array('pts'=>1,'qts'=>-1,'date'=>1,'seq'=>0),'step'=>Authentication::NEEDAUTHENTICATION],$this->savetime);
 	}
 	public function load() : object {

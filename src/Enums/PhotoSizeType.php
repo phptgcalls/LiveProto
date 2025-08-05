@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Enums;
 
+# https://github.com/tdlib/td/blob/master/td/telegram/PhotoSizeSource.h #
 enum PhotoSizeType : int {
 	case LEGACY = 0;
 	case THUMBNAIL = 1;

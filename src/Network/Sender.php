@@ -304,7 +304,6 @@ final class Sender {
 			$server_salt = $reader->readLong();
 			$this->load['salt'] = $server_salt;
 			Logging::log('New Session Created','First Message ID : '.$first_msg_id,0);
-			# // $this->session->save();
 		# bad_msg_notification#a7eff811 bad_msg_id:long bad_msg_seqno:int error_code:int = BadMsgNotification; #
 		elseif($constructorId == 0xa7eff811):
 			$bad_msg_id = $reader->readLong();
@@ -377,7 +376,6 @@ final class Sender {
 		throw $error;
 	}
 	public function close() : void {
-		# $this->receiveLoop->stop();
 		unset($this->receiveLoop);
 		Logging::log('Sender','Closed !',E_WARNING);
 	}

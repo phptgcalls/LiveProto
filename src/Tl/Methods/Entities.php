@@ -231,7 +231,7 @@ trait Entities {
 	}
 	private function href(int $offset,int $length,string $href) : object {
 		if(preg_match('|^mention:(?<id>.+)|',$href,$matches) or preg_match('|^tg://user\\?id=(?<id>\d+)|',$href,$matches)):
-			return $this->inputMessageEntityMentionName(offset : $offset,length : $length,user_id : $this->get_input_peer(filter_var($matches['id'],FILTER_VALIDATE_INT) ? intval($matches['id']) : $matches['id']));
+			return $this->inputMessageEntityMentionName(offset : $offset,length : $length,user_id : $this->get_input_user(filter_var($matches['id'],FILTER_VALIDATE_INT) ? intval($matches['id']) : $matches['id']));
 		elseif(preg_match('|^emoji:(?<id>\d+)$|',$href,$matches) or preg_match('|^tg://emoji\\?id=(?<id>\d+)|',$href,$matches)):
 			return $this->messageEntityCustomEmoji(offset : $offset,length : $length,document_id : intval($matches['id']));
 		else:

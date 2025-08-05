@@ -22,6 +22,27 @@ final class MySQL implements AbstractDB , AbstractPeers {
 		if($this->connection->query('SHOW TABLES LIKE '.chr(39).$table.chr(39))->fetchRow() and $this->connection->query('SELECT * FROM '.$table)->fetchRow()):
 			return false;
 		else:
+			/*
+			$this->connection->prepare('CREATE TABLE IF NOT EXISTS '.$table.' (
+				`id` BIGINT PRIMARY KEY,
+				`api_id` INT DEFAULT :api_id,
+				`api_hash` TEXT DEFAULT :api_hash,
+				`dc` INT DEFAULT :dc,
+				`ip` TEXT DEFAULT :ip,
+				`port` INT DEFAULT :port,
+				`auth_key` LONGTEXT DEFAULT :auth_key,
+				`salt` BIGINT DEFAULT :salt,
+				`sequence` BIGINT DEFAULT :sequence,
+				`time_offset` INT DEFAULT :time_offset,
+				`last_msg_id` BIGINT DEFAULT :last_msg_id,
+				`logout_tokens` TEXT DEFAULT :logout_tokens,
+				`pts` BIGINT DEFAULT :pts,
+				`date` BIGINT DEFAULT :date,
+				`qts` BIGINT DEFAULT :qts,
+				`step` TEXT DEFAULT :step
+				) default charset = utf8mb4')->execute($data);
+			$this->connection->prepare('INSERT INTO '.$table.' (`id`) VALUES (:id)')->execute($data);
+			*/
 			$this->connection->query(
 				'CREATE TABLE IF NOT EXISTS '.$table.' (
 				`id` BIGINT PRIMARY KEY

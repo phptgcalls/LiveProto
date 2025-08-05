@@ -38,7 +38,7 @@ trait Dialog {
 		} while($lastoffset !== $newoffset and isset($result->count) and $count > 0 and $limit > 0);
 		return $dialogs;
 	}
-	public function get_difference(int $pts = 1,int $date = 1,int $qts = 1,? int $total_limit = 0x7fffffff,? int $pts_limit = null,? int $qts_limit = null) : \Generator {
+	public function get_difference(int $pts = 1,int $date = 1,int $qts = 1,? int $total_limit = 0x7fffffff,? int $pts_limit = null,? int $qts_limit = null,bool $deep = false) : \Generator {
 		while(true):
 			Logging::log('Difference','pts = '.$pts.' & date = '.$date.' & qts = '.$qts,0);
 			$difference = $this->updates->getDifference(pts : $pts,date : $date,qts : $qts,pts_total_limit : $total_limit,pts_limit : $pts_limit,qts_limit : $qts_limit);
@@ -51,8 +51,7 @@ trait Dialog {
 				$date = $difference->intermediate_state->date;
 				$qts = $difference->intermediate_state->qts;
 			elseif($difference instanceof \Tak\Liveproto\Tl\Types\Updates\DifferenceTooLong):
-				$pts = $this->search_pts($pts,$difference->pts,$qts,$date);
-				# $pts = $difference->pts;
+				$pts = $deep ? $this->search_pts($pts,$difference->pts,$qts,$date) : $difference->pts;
 				continue;
 			elseif($difference instanceof \Tak\Liveproto\Tl\Types\Updates\DifferenceEmpty):
 				break;
