@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Filters;
 
+use Tak\Liveproto\Utils\Logging;
+
 use Tak\Liveproto\Enums\PeerType;
 
 final class Interfaces {
