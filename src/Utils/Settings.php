@@ -37,6 +37,9 @@ final class Settings {
 			case 'langcode':
 				if(is_string($value) === false) $value = (extension_loaded('intl') ? locale_get_primary_language(locale_get_default()) : 'en');
 				break;
+			case 'hotreload':
+				if(is_bool($value) === false) $value = true;
+				break;
 			case 'floodsleepthreshold':
 				if(is_int($value) === false) $value = 120;
 				break;

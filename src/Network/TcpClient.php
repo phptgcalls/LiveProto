@@ -88,6 +88,9 @@ final class TcpClient {
 		endwhile;
 		return $result;
 	}
+	public function __destruct(){
+		$this->close();
+	}
 }
 
 ?>

@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Filters;
 
+use Tak\Liveproto\Utils\Logging;
+
 use Tak\Liveproto\Enums\PeerType;
 
 final class Interfaces {
@@ -544,6 +546,7 @@ final class Interfaces {
 					return true;
 			endswitch;
 		} catch(\Throwable $error){
+			error_log(var_export($error,true));
 			Logging::log('Interfaces',$error->getMessage(),E_ERROR);
 			$update->is_custom = $isCustom;
 			return false;

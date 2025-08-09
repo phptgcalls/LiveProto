@@ -379,6 +379,9 @@ final class Sender {
 		unset($this->receiveLoop);
 		Logging::log('Sender','Closed !',E_WARNING);
 	}
+	public function __destruct(){
+		$this->close();
+	}
 }
 
 ?>

@@ -38,7 +38,7 @@ class Builder {
 		foreach($doc as $name => $value):
 			$this->writeNewLine(' * @'.$name.chr(32).(is_array($value) ? implode(chr(32),$value) : strval($value)));
 		endforeach;
-		$this->writeNewLine('*/');
+		$this->writeNewLine(' */');
 	}
 	public function close() : void {
 		if(empty($this->text) === false) $this->write($this->text);

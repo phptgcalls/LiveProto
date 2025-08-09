@@ -2,19 +2,22 @@
 
 declare(strict_types = 1);
 
-namespace Tak\Liveproto\Utils;
+namespace Tak\Liveproto\Ipc;
+
+use Tak\Liveproto\Utils\Logging;
 
 final class SessionLocker {
 	private mixed $fp;
-	
-	public function __construct(string | null $name){
-		$this->fp = fopen(sys_get_temp_dir().DIRECTORY_SEPARATOR.urlencode($name ?: uniqid('LiveProto')).chr(95).md5($_SERVER['SCRIPT_FILENAME']),'c+');
+
+	public function __construct(string $name){
+		$this->fp = fopen(sys_get_temp_dir().DIRECTORY_SEPARATOR.urlencode($name).chr(95).md5($_SERVER['SCRIPT_FILENAME']),'c+');
 		if($this->fp === false):
 			Logging::log('Session Locker','Session not locked',E_ERROR);
 			exit('No access to lock the session');
 		endif;
 	}
 	private function commitState(bool $status) : void {
+		rewind($this->fp);
 		ftruncate($this->fp,0);
 		fwrite($this->fp,strval(intval($status)));
 		fflush($this->fp);
@@ -42,8 +45,7 @@ final class SessionLocker {
 	}
 	public function unlock() : void {
 		if(flock($this->fp,LOCK_UN | LOCK_NB)):
-			fwrite($this->fp,strval(0));
-			fflush($this->fp);
+			$this->commitState(false);
 		endif;
 		fclose($this->fp);
 	}

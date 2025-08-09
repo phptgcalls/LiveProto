@@ -261,6 +261,13 @@ final class Updates {
 	public function recoveringGaps() : void {
 		$isLocked = isset($this->lock);
 		$this->lock = $this->mutex->acquire();
+		$unlock = function() : void {
+			if(isset($this->lock)):
+				$lock = $this->lock;
+				unset($this->lock);
+				$lock->release();
+			endif;
+		};
 		if($isLocked === false):
 			$state = $this->state();
 			$differences = $this->client->get_difference(pts : $state->pts,date : $state->date,qts : $state->qts);
@@ -283,14 +290,10 @@ final class Updates {
 				$state->qts = $newState->qts;
 				$state->date = $newState->date;
 				$state->seq = $newState->seq;
-				break; // I didn't want to take them all
+				break; // I didn't want to take them all , I'll give it a chance to get the updates itself :) //
 			endforeach;
 		endif;
-		if(isset($this->lock)):
-			$lock = $this->lock;
-			unset($this->lock);
-			$lock->release();
-		endif;
+		EventLoop::queue($unlock);
 	}
 	public function recoveringChannel(int $channel_id,? int $pts = null) : void {
 		static $cache = array();

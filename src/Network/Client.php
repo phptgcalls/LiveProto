@@ -12,7 +12,9 @@ use Tak\Liveproto\Utils\Settings;
 
 use Tak\Liveproto\Utils\Logging;
 
-use Tak\Liveproto\Utils\SessionLocker;
+use Tak\Liveproto\Ipc\SessionLocker;
+
+use Tak\Liveproto\Ipc\SignalHandler;
 
 use Tak\Liveproto\Database\Session;
 
@@ -38,8 +40,8 @@ final class Client extends Caller implements Stringable {
 	protected TcpTransport $transport;
 	protected Sender $sender;
 	protected LocalMutex $mutex;
-	protected ? SessionLocker $locker;
 	public readonly Updates $handler;
+	protected ? object $locker;
 	public array $dcoptions;
 	public object $config;
 	public bool $connected = false;
@@ -47,13 +49,13 @@ final class Client extends Caller implements Stringable {
 
 	public function __construct(string | null $resourceName,string | null $storageDriver,public Settings $settings){
 		if(is_null($resourceName) === false and empty($resourceName)):
-			throw new InvalidArgumentException('ResourceName cannot be an empty string value');
+			throw new \InvalidArgumentException('ResourceName cannot be an empty string value');
 		endif;
 		if(is_null($resourceName) !== is_null($storageDriver)):
-			throw new InvalidArgumentException('The `resourceName` and `storageDriver` parameters must both be null or both have string values');
+			throw new \InvalidArgumentException('The `resourceName` and `storageDriver` parameters must both be null or both have string values');
 		endif;
 		new Logging($settings);
-		$this->locker = in_array($storageDriver,['text',null]) ? null : new SessionLocker($resourceName);
+		$this->locker = in_array($storageDriver,['text',null]) ? null : ($settings->getHotReload ? new SignalHandler($resourceName,$this) : new SessionLocker($resourceName));
 		$this->session = new Session($resourceName,$storageDriver,$settings);
 		$this->load = $this->session->load();
 		$this->handler = new Updates($this,$this->session);
@@ -71,11 +73,8 @@ final class Client extends Caller implements Stringable {
 		$this->dcoptions = array(new \Tak\Liveproto\Tl\Types\Other\DcOption(['id'=>$this->load->dc,'ip_address'=>$this->load->ip,'port'=>$this->load->port,'client'=>$this,'expires_at'=>0]));
 	}
 	public function connect(bool $reconnect = false,bool $reset = false) : void {
-		if(isset($this->sender) and $reconnect):
-			$this->sender->close();
-		endif;
-		if(isset($this->transport) and $reconnect):
-			$this->transport->close();
+		if($reconnect):
+			$this->disconnect();
 		endif;
 		Logging::log('Client','Connect to IP : '.$this->load->ip,0);
 		$this->transport = new TcpTransport($this->load->ip,$this->load->port,$this->load->dc,$this->settings->protocol,$this->settings->proxy);
@@ -93,9 +92,7 @@ final class Client extends Caller implements Stringable {
 		$this->connected = true;
 	}
 	public function setDC(string $ip,int $port,int $id) : void {
-		$this->load->ip = $ip;
-		$this->load->port = $port;
-		$this->load->dc = $id;
+		list($this->load->ip,$this->load->port,$this->load->dc) = func_get_args();
 	}
 	public function changeDC(int $dcid) : void {
 		Logging::log('Client','Try change dc ...',0);
@@ -104,7 +101,6 @@ final class Client extends Caller implements Stringable {
 				$this->removeDC($this->load->ip);
 				$this->setDC($dc->ip_address,$dc->port,$dc->id);
 				Logging::log('Client','New IP : '.$dc->ip_address,0);
-				$this->connected = false;
 				$this->connect(reconnect : true,reset : true);
 				break;
 			endif;
@@ -263,7 +259,7 @@ final class Client extends Caller implements Stringable {
 			$loginform = realpath(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'login.php');
 			include($loginform);
 		endif;
-		$this->runInBackGround();
+		$this->runInBackground();
 		if(is_callable($lock)):
 			$this->disconnect();
 			Logging::log('Client','The start request has been queued for execution !',E_NOTICE);
@@ -290,7 +286,7 @@ final class Client extends Caller implements Stringable {
 			$this->locker->unlock();
 		endif;
 	}
-	private function runInBackGround() : void {
+	private function runInBackground() : void {
 		if(Tools::isCli() === false and headers_sent() === false):
 			http_response_code(200);
 			if(is_callable('litespeed_finish_request')):
@@ -308,10 +304,14 @@ final class Client extends Caller implements Stringable {
 	}
 	public function disconnect() : void {
 		if($this->connected):
-			Logging::log('Client','Disconnect !',E_NOTICE);
-			$this->sender->close();
-			$this->transport->close();
+			Logging::log('Client','Disconnect !',E_WARNING);
+			if(isset($this->sender,$this->transport)):
+				$this->sender->close();
+				$this->transport->close();
+			endif;
 			$this->connected = false;
+		else:
+			Logging::log('Client','You are not connected yet to disconnect !',E_ERROR);
 		endif;
 	}
 	public function __debugInfo() : array {
@@ -324,6 +324,7 @@ final class Client extends Caller implements Stringable {
 			'systemlangcode'=>$this->settings->systemlangcode,
 			'langpack'=>$this->settings->langpack,
 			'langcode'=>$this->settings->langcode,
+			'hotreload'=>$this->settings->hotreload,
 			'floodsleepthreshold'=>$this->settings->floodsleepthreshold,
 			'receiveupdates'=>$this->settings->receiveupdates,
 			'iptype'=>$this->settings->ipv6 ? 'ipv6' : 'ipv4',

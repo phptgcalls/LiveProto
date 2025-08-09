@@ -50,6 +50,9 @@ final class TcpTransport {
 	public function close() : void {
 		$this->tcpClient->close();
 	}
+	public function __destruct(){
+		$this->close();
+	}
 }
 
 ?>
