@@ -1,0 +1,100 @@
+name: Build PHAR and upload to release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    env:
+      PHP_VERSION: '8.3'
+      PHAR_TARGET_BASENAME: liveptoto.phar
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@2.32.0
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, gmp
+          coverage: none
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Set VERSION
+        id: set-version
+        run: |
+          TAG='${{ github.event.release.tag_name }}'
+          VERSION="${TAG#v}"
+          VERSION="${VERSION#V}"
+          echo "Tag from event: $TAG"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build PHAR
+        env:
+          VERSION: ${{ env.VERSION }}
+          PHAR_NAME: ${{ env.PHAR_TARGET_BASENAME }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VERSION:-}" ]; then
+            echo "VERSION is empty — cannot continue"
+            exit 1
+          fi
+
+          OUT_DIR="v/$VERSION"
+          OUT_PATH="$OUT_DIR/$PHAR_NAME"
+
+          mkdir -p "$OUT_DIR"
+          rm -f "$OUT_PATH"
+
+          cat > build-phar.php <<'PHP'
+          <?php
+          $out = $argv[true];
+
+          if(file_exists($out)) unlink($out);
+
+          $phar = new Phar($out);
+
+          $phar->startBuffering();
+
+          $phar->buildFromDirectory('vendor');
+
+          $stub = $phar->createDefaultStub('autoload.php');
+
+          $phar->setStub($stub);
+
+          $phar->stopBuffering();
+
+          echo "PHAR created at $out\n";
+          PHP
+          php -d phar.readonly=0 build-phar.php "$OUT_PATH"
+
+      - name: Verify PHAR exists
+        run: |
+          ls -l "v/${{ env.VERSION }}/${{ env.PHAR_TARGET_BASENAME }}"
+          file "v/${{ env.VERSION }}/${{ env.PHAR_TARGET_BASENAME }}" || true
+
+      - name: Upload PHAR to the Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: v/${{ env.VERSION }}/${{ env.PHAR_TARGET_BASENAME }}
