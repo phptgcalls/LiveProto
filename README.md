@@ -26,13 +26,7 @@ composer require taknone/liveproto
 
 ## 🏁 Getting Started
 
-After installation , run the setup script to initialize helper files and caches :
-
-```bash
-composer exec -- php vendor/taknone/liveproto/src/setup.php
-```
-
-### Example Usage
+Example Usage :
 
 ```php
 <?php
