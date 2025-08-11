@@ -21,6 +21,26 @@ Install via Composer :
 composer require taknone/liveproto
 ```
 
+Then use it like this :
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+```
+
+Install via Phar :
+
+```php
+<?php
+
+if(file_exists('liveptoto.php') === false):
+    copy('https://installer.liveproto.dev/liveproto.php','liveptoto.php');
+endif;
+
+require_once 'liveptoto.php';
+```
+
 ---
 
 ## 🏁 Getting Started
@@ -49,6 +69,7 @@ try {
 	if($client->isAuthorized() === false){
 		$client->sign_in(token : '123456:AAEK.....');
 	}
+	/* 😁 If you would like to avoid errors, enter your username in the line below 😎 */
 	$peer = $client->get_input_peer('@TakNone');
 	print_r($client->messages->sendMessage($peer,'👋',random_int(PHP_INT_MIN,PHP_INT_MAX)));
 } catch(Throwable $error){
