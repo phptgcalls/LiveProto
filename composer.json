@@ -41,10 +41,5 @@
         "league/uri": "^7.5.1",
         "phpseclib/phpseclib": "^3.0.46",
         "taknone/bootstrapper": "1.0.0"
-    },
-    "config": {
-        "allow-plugins": {
-            "taknone/bootstrapper": true
-        }
     }
 }
