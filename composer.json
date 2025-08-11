@@ -21,11 +21,6 @@
             "src/loader.php"
         ]
     },
-    "scripts": {
-        "post-autoload-dump": [
-            "php src/setup.php"
-        ]
-    },
     "authors": [
         {
             "name": "Tak None",
