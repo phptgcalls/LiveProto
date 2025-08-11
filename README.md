@@ -8,7 +8,6 @@ An **async** , **pure-PHP** MTProto Telegram client library , offering full prot
 
 * **Full MTProto Protocol :** Complete implementation of Telegram's low-level protocol
 * **Asynchronous I/O :** Built with PHP 8's async primitives (Fibers/Amp), enabling non-blocking requests
-* **Zero External Dependencies :** No PECL extensions or native libraries required
 * **Session Management :** Automatic key exchange, session storage, and reconnection logic
 * **Comprehensive API Coverage :** Send and receive messages, manage chats and channels, handle updates, upload/download media, and more
 
