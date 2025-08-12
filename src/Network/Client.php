@@ -162,9 +162,6 @@ final class Client extends Caller implements Stringable {
 			$temp = $reflection->getProperty('load')->getValue($client);
 			$sender = $reflection->getProperty('sender')->getValue($client);
 			$this->sender->bindTempAuthKey(sender : $sender,temp_auth_key_id : $temp->auth_key->id,expires_at : $temp->auth_key->expires_at);
-			/* Wtf ? which client should be init connection again ?! */
-			// $this->connect(); or $client->connect(); //
-			// $client->connect(reconnect : true); //
 			return $client;
 		elseif(isset($client)):
 			return $client;
@@ -204,7 +201,7 @@ final class Client extends Caller implements Stringable {
 		$functions = get_defined_functions();
 		foreach($functions['user'] as $function):
 			$reflection = new \ReflectionFunction($function);
-			$attributes = $reflection->getAttributes(Filter::class); # flag : \ReflectionAttribute::IS_INSTANCEOF
+			$attributes = $reflection->getAttributes(Filter::class);
 			if(empty($attributes) === false):
 				$this->addHandler($function);
 			endif;
@@ -256,8 +253,7 @@ final class Client extends Caller implements Stringable {
 				Logging::echo('Your bot is now running...');
 			endif;
 		else:
-			$loginform = realpath(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'login.php');
-			include($loginform);
+			include(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'login.php');
 		endif;
 		$this->runInBackground();
 		if(is_callable($lock)):
