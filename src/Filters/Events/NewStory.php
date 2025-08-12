@@ -42,10 +42,12 @@ final class NewStory extends Filter {
 			$args += ['reply_to'=>$event->inputReplyToStory($peer,$event->story->id,...$reply_to)];
 			return $event->getClient()->messages->sendMessage($peer,$message,random_int(PHP_INT_MIN,PHP_INT_MAX),...$args);
 		};
-		$event->forward = function(mixed $peer,string $message,mixed ...$args) use($event) : object {
+		$event->forward = function(mixed $peer,array $reply_to = array(),mixed ...$args) use($event) : object {
+			$args += ['reply_to'=>(isset($reply_to['peer']) || isset($reply_to['story_id'])) ? $event->inputReplyToStory(...$reply_to) : $event->inputReplyToMessage(...$reply_to)];
 			$to = $event->get_input_peer($peer);
 			$peer = $event->getPeer();
 			$media = $event->inputMediaStory(peer : $peer,id : $event->story->id);
+			$message = strval($event->story->caption ?? null);
 			return $event->getClient()->messages->sendMedia($to,$media,$message,random_int(PHP_INT_MIN,PHP_INT_MAX),...$args);
 		};
 		$event->reaction = function(string | int | array | null $reaction,mixed ...$args) use($event) : object {

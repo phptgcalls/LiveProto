@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>LiveProto</title>
+		<link rel="icon" href="_images/favicon.ico" />
+		<meta
+			name="keywords"
+			content="doc,docs,documentation,document,live,proto,liveproto,mtproto,php,client,telegram,telegramclient,bot,userbot"
+		/>
+		<meta name="description" content="A PHP MTProto Telegram Client"/>
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+		/>
+		<!-- Core Theme -->
+		<link
+			rel="stylesheet"
+			href="https://preview.docsifyjs.org/dist/themes/core.min.css"
+		/>
+		<!-- Theme Add-on(s) -->
+		<link
+			rel="stylesheet"
+			href="https://preview.docsifyjs.org/dist/themes/addons/core-dark.min.css"
+			media="(prefers-color-scheme: dark)"
+			data-group="addon"
+			data-sheet="core-dark-auto"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://preview.docsifyjs.org/dist/themes/addons/core-dark.min.css"
+			data-group="addon"
+			data-sheet="core-dark"
+			disabled
+		/>
+		<link
+			rel="stylesheet"
+			href="https://preview.docsifyjs.org/dist/themes/addons/vue.min.css"
+			data-group="addon"
+			data-sheet="vue"
+			disabled
+		/>
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=Cardo:ital,wght@0,400;0,700;1,400&display=swap');
+			@import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@100..900&display=swap');
+
+			body {
+				font-family: 'Cardo', 'Noto Kufi Arabic', serif;
+			}
+		</style>
+	</head>
+	<script>
+		if(!window.location.hash){
+			window.location.hash = '#/en/';
+		}
+	</script>
+	<body class="loading sidebar-chevron-right sidebar-group-box">
+		<div id="app"></div>
+		<script>
+			window.$docsify = {
+				/*
+				'flexible-alerts': {
+					comment: {
+						label: {
+							'/fa/': 'یادداشت',
+							'/en/': 'comment'
+						},
+						icon: 'fa fa-comment',
+						className: 'warning'
+					}
+				},
+				*/
+				alias: {
+					'.*?/changelog': '/CHANGELOG.md',
+					'.*/_navbar.md': '/_navbar.md',
+					'/fa/(.*)': '/fa/$1',
+					'/en/(.*)': '/en/$1',
+				},
+				name: '<span><img src="https://raw.githubusercontent.com/TakNone/LiveProtoDocs/master/_images/logo.svg" alt="Image" style="vertical-align: middle; height: 20%;"/></span>',
+				nameLink: {
+					'/fa/': '#/fa/',
+					'/en/': '#/en/',
+				},
+				repo: 'TakNone/LiveProto',
+				maxLevel: 4,
+				subMaxLevel: 2,
+				auto2top: true,
+				coverpage: ['/en/','/fa/'],
+				executeScript: true,
+				loadSidebar: true,
+				loadNavbar: true,
+				autoHeader: false,
+				nativeEmoji: true,
+				notFoundPage: true,
+				search: {
+					// maxAge: 86400000,
+					depth: 6,
+					paths: 'auto',
+					placeholder: {
+						'/fa/': 'جستجو',
+						'/en/': 'Search'
+						},
+					noData: {
+						'/fa/': 'یافت نشد !',
+						'/en/': 'No results !'
+						},
+					pathNamespaces: ['/fa','/en']
+				},
+				/*
+				markdown: {
+					renderer: {
+						heading(text,level){
+							console.log(text);
+							return `<h${level} style="font-weight: bold; direction: rtl; text-align: right;">${text}</h${level}>`;
+							return this.origin.code.apply(this, arguments);
+						}
+					}
+				},
+				*/
+				plugins: [
+					function(hook,vm){
+						/*
+						hook.beforeEach(function(markdown){
+							const content = markdown.split('\n').map((line) => {
+								if(/[\u0600-\u06FF]/.test(line)){
+									if(line.startsWith('#')){
+									line = marked(line).replace(/<\/?span[^>]*>/g, '');
+									console.log(line);
+									}
+									return `<span class="rtl-text">${line}</span>`;
+								}
+								return line;
+							}).join('\n');
+							return content;
+						});
+						*/
+						var footer = [
+							'<footer style="text-align: center;margin-top: 50px;">',
+							'<span> Made by <a href="https://AsirRam.t.me" target="_blank">TakNone</a>	&copy; 2025</span>',
+							'</footer>'
+						].join('');
+						hook.doneEach(function(){
+							// const sidebarActive = document.querySelector('.sidebar ul li.active > a');
+							// const c = window.getComputedStyle(sidebar);
+							// console.log(sidebar.style.left);
+							// set sidebar
+							// test all tags in elements
+							const elements = document.querySelectorAll('h1 , h2 , h3 , h4 , h5 , h6 , p , ul , ol , li , blockquote , a , table , thead , tbody , tr , th , td , em , strong , del , div , span');
+							elements.forEach((el) => {
+								const className = el.classList.value || el.parentElement.classList.value || undefined;
+								if(className !== 'sidebar-nav'){
+									if(/[\u0600-\u06FF]/.test(el.textContent)){
+										el.style.direction = 'rtl';
+										const elementClasses = el.classList.value || 'No Class';
+										const parentClasses = el.parentElement ? el.parentElement.classList.value || 'No Class' : 'No Parent';
+										console.log(`Element: <${el.tagName.toLowerCase()}> | Classes: ${elementClasses} | Parent Classes: ${parentClasses} | Text: ${el.textContent}`);
+									} else {
+										el.style.direction = 'ltr';
+									}
+								}
+							});
+						});
+						hook.afterEach(function(html){
+							return html + footer;
+						});
+						hook.doneEach(function(){
+							const regex = /^(?!#\/.+\/$).+/;
+							if(regex.test(document.location.hash)) document.title += ' | LiveProto Documents';
+						});
+					}
+				]
+			};
+		</script>
+		<script src="https://preview.docsifyjs.org/dist/docsify.min.js"></script>
+		<script src="https://preview.docsifyjs.org/dist/plugins/search.min.js"></script>
+		<script src="https://preview.docsifyjs.org/dist/plugins/front-matter.min.js"></script>
+		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
+		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-php.min.js"></script>
+
+		<!-- Vue: Development -->
+		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script> -->
+		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.runtime.global.js"></script> -->
+
+		<!-- Vue: Production -->
+		<script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.runtime.global.prod.js"></script> -->
+
+		<script src="https://unpkg.com/docsify-plugin-flexible-alerts"></script>
+		<script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+		<script src="https://cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+	</body>
+</html>

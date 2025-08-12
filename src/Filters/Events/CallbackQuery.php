@@ -49,7 +49,8 @@ final class CallbackQuery extends Filter {
 				throw new \Exception('This method is not available for this update');
 			endif;
 		};
-		$event->forward = function(mixed $peer,mixed ...$args) use($event) : object {
+		$event->forward = function(mixed $peer,array $reply_to = array(),mixed ...$args) use($event) : object {
+			$args += ['reply_to'=>(isset($reply_to['peer']) || isset($reply_to['story_id'])) ? $event->inputReplyToStory(...$reply_to) : $event->inputReplyToMessage(...$reply_to)];
 			$to = $event->get_input_peer($peer);
 			$peer = $event->getPeer();
 			if($event->class === 'updateBotCallbackQuery'):

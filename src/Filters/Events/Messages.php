@@ -56,7 +56,8 @@ final class Messages extends Filter {
 			$peer = $event->getPeer();
 			return $event->getClient()->messages->sendMessage($peer,$message,random_int(PHP_INT_MIN,PHP_INT_MAX),...$args);
 		};
-		$event->forward = function(mixed $peer,mixed ...$args) use($event) : object {
+		$event->forward = function(mixed $peer,array $reply_to = array(),mixed ...$args) use($event) : object {
+			$args += ['reply_to'=>(isset($reply_to['peer']) || isset($reply_to['story_id'])) ? $event->inputReplyToStory(...$reply_to) : $event->inputReplyToMessage(...$reply_to)];
 			$to = $event->get_input_peer($peer);
 			$peer = $event->getPeer();
 			return $event->getClient()->messages->forwardMessages($peer,array($event->message->id),array(random_int(PHP_INT_MIN,PHP_INT_MAX)),$to,...$args);
