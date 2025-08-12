@@ -11,11 +11,11 @@ Here we will explain how to create a <mark>LiveProto Client</mark> instance
 ```php
 <?php
 
-if(file_exists('liveptoto.php') === false):
-    copy('https://phar.liveproto.dev/liveptoto.php','liveptoto.php');
+if(file_exists('liveproto.php') === false):
+    copy('https://installer.liveproto.dev/liveproto.php','liveproto.php');
 endif;
 
-require_once 'liveptoto.php';
+require_once 'liveproto.php';
 
 use Tak\Liveproto\Network\Client;
 
