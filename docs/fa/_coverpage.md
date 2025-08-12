@@ -1,6 +1,6 @@
 <!-- markdownlint-disable first-line-h1 -->
 
-![logo](https://raw.githubusercontent.com/TakNone/LiveProtoDocs/master/_images/fixed-logo.svg)
+![logo](https://raw.githubusercontent.com/TakNone/LiveProto/master/docs/_images/fixed-logo.svg)
 
 # لایو پروتو <small>0.0.1</small>
 

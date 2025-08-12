@@ -1,7 +1,7 @@
 # LiveProto
 
 <p align = 'center'>
-<img src = 'https://raw.githubusercontent.com/taknone/LiveProtoDocs/master/_images/logo.png' alt = 'logo' width = '180'/>
+<img src = 'https://raw.githubusercontent.com/TakNone/LiveProto/master/docs/_images/logo.png' alt = 'logo' width = '180'/>
 <br>
 <a href = 'https://github.com/taknone/liveproto/releases'>
     <img alt = 'GitHub Release' src = 'https://img.shields.io/github/v/release/taknone/liveproto?include_prereleases&label=version&logo=github' style = 'margin : 4px'>
