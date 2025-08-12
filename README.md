@@ -34,11 +34,11 @@ Install via Phar :
 ```php
 <?php
 
-if(file_exists('liveptoto.php') === false):
-    copy('https://installer.liveproto.dev/liveproto.php','liveptoto.php');
+if(file_exists('liveproto.php') === false):
+    copy('https://installer.liveproto.dev/liveproto.php','liveproto.php');
 endif;
 
-require_once 'liveptoto.php';
+require_once 'liveproto.php';
 ```
 
 ---
