@@ -76,28 +76,13 @@ require_once 'vendor/autoload.php';
 
 ```json
 {
-    "name": "yourname/yourproject",
-    "description": "Project Description",
-    "type": "project",
-    "autoload": {
-        "psr-4": {
-            "Yourname\\Yourproject\\": "src/"
-        }
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "php vendor/tak/liveproto/src/setup.php"
-        ]
-    },
-    "authors": [
-        {
-            "name": "Tak None",
-            "email": "MrTakNone@gmail.com"
-        }
-    ],
     "require": {
-        "php": ">=8.2",
         "taknone/liveproto": "*"
+    },
+    "config": {
+        "allow-plugins": {
+            "taknone/bootstrapper": true
+        }
     }
 }
 ```
