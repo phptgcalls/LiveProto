@@ -58,18 +58,6 @@
 		<div id="app"></div>
 		<script>
 			window.$docsify = {
-				/*
-				'flexible-alerts': {
-					comment: {
-						label: {
-							'/fa/': 'یادداشت',
-							'/en/': 'comment'
-						},
-						icon: 'fa fa-comment',
-						className: 'warning'
-					}
-				},
-				*/
 				alias: {
 					'.*?/changelog': '/CHANGELOG.md',
 					'.*/_navbar.md': '/_navbar.md',
@@ -93,7 +81,6 @@
 				nativeEmoji: true,
 				notFoundPage: true,
 				search: {
-					// maxAge: 86400000,
 					depth: 6,
 					paths: 'auto',
 					placeholder: {
@@ -106,45 +93,14 @@
 						},
 					pathNamespaces: ['/fa','/en']
 				},
-				/*
-				markdown: {
-					renderer: {
-						heading(text,level){
-							console.log(text);
-							return `<h${level} style="font-weight: bold; direction: rtl; text-align: right;">${text}</h${level}>`;
-							return this.origin.code.apply(this, arguments);
-						}
-					}
-				},
-				*/
 				plugins: [
 					function(hook,vm){
-						/*
-						hook.beforeEach(function(markdown){
-							const content = markdown.split('\n').map((line) => {
-								if(/[\u0600-\u06FF]/.test(line)){
-									if(line.startsWith('#')){
-									line = marked(line).replace(/<\/?span[^>]*>/g, '');
-									console.log(line);
-									}
-									return `<span class="rtl-text">${line}</span>`;
-								}
-								return line;
-							}).join('\n');
-							return content;
-						});
-						*/
 						var footer = [
 							'<footer style="text-align: center;margin-top: 50px;">',
-							'<span> Made by <a href="https://AsirRam.t.me" target="_blank">TakNone</a>	&copy; 2025</span>',
+							'<span> Made by <a href="https://TakNone.t.me" target="_blank">TakNone</a>	&copy; 2025</span>',
 							'</footer>'
 						].join('');
 						hook.doneEach(function(){
-							// const sidebarActive = document.querySelector('.sidebar ul li.active > a');
-							// const c = window.getComputedStyle(sidebar);
-							// console.log(sidebar.style.left);
-							// set sidebar
-							// test all tags in elements
 							const elements = document.querySelectorAll('h1 , h2 , h3 , h4 , h5 , h6 , p , ul , ol , li , blockquote , a , table , thead , tbody , tr , th , td , em , strong , del , div , span');
 							elements.forEach((el) => {
 								const className = el.classList.value || el.parentElement.classList.value || undefined;
@@ -177,10 +133,6 @@
 		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
 		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
 		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-php.min.js"></script>
-
-		<!-- Vue: Development -->
-		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script> -->
-		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.runtime.global.js"></script> -->
 
 		<!-- Vue: Production -->
 		<script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
