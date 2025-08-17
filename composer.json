@@ -40,6 +40,6 @@
         "amphp/mysql": "^3",
         "league/uri": "^7.5.1",
         "phpseclib/phpseclib": "^3.0.46",
-        "taknone/bootstrapper": "1.0.0"
+        "taknone/bootstrapper": "1.1.0"
     }
 }
