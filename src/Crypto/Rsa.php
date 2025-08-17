@@ -91,8 +91,20 @@ final class Rsa {
 													'UiggS4UeE8TzIuXFQxw7fzEIlmhIaq3FnwIDAQAB'.
 													'-----END RSA PUBLIC KEY-----'
 												];
+
+	static private array $cdnPublicKeys = array();
+
+	static public function addCdn(object $cdnConfig) : void {
+		foreach($cdnConfig->public_keys as $cdnPublicKey):
+			if(isset($cdnPublicKey->public_key)):
+				self::$cdnPublicKeys []= $cdnPublicKey->public_key;
+			endif;
+		endforeach;
+		self::$cdnPublicKeys = array_unique(self::$cdnPublicKeys);
+	}
 	static public function find(int $fingerprintnumber,string $data) : string | null {
-		foreach(self::RSAKEYS as $rsa):
+		$publicKeys = array_merge(self::RSAKEYS,self::$cdnPublicKeys);
+		foreach($publicKeys as $rsa):
 			list($fingerprint,$modulus,$exponent) = self::loadRsa($rsa);
 			if($fingerprint === $fingerprintnumber):
 				return self::encrypt($data,$modulus,$exponent);

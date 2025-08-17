@@ -25,9 +25,11 @@ use function Amp\File\getSize;
 use SQLite3;
 
 final class Session {
-	private object $content;
-	private array $servers = [['ip'=>'149.154.175.60','ipv6'=>'2001:0b28:f23d:f001:0000:0000:0000:000a','port'=>443,'dc'=>1],['ip'=>'149.154.167.41','ipv6'=>'2001:067c:04e8:f002:0000:0000:0000:000a','port'=>443,'dc'=>2],['ip'=>'149.154.175.100','ipv6'=>'2001:0b28:f23d:f003:0000:0000:0000:000a','port'=>443,'dc'=>3],['ip'=>'149.154.167.91','ipv6'=>'2001:067c:04e8:f004:0000:0000:0000:000a','port'=>443,'dc'=>4],['ip'=>'91.108.56.180','ipv6'=>'2001:0b28:f23f:f005:0000:0000:0000:000a','port'=>443,'dc'=>5]];
-	private array $testservers = [['ip'=>'149.154.175.10','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000e','port'=>80,'dc'=>1],['ip'=>'149.154.167.40','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000e','port'=>80,'dc'=>2],['ip'=>'149.154.175.117','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000e','port'=>80,'dc'=>3]];
+	protected Content $content;
+	protected MySQL $mysql;
+	protected SQLite3 $sqlite;
+	private array $servers = [['ip'=>'149.154.175.50','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000a','port'=>443,'dc'=>1],['ip'=>'149.154.167.51','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000a','port'=>443,'dc'=>2],['ip'=>'149.154.175.100','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000a','port'=>443,'dc'=>3],['ip'=>'149.154.167.91','ipv6'=>'2001:67c:4e8:f004:0000:0000:0000:000a','port'=>443,'dc'=>4],['ip'=>'149.154.175.40','ipv6'=>'2001:b28:f23f:f005:0000:0000:0000:000a','port'=>443,'dc'=>5]];
+	private array $testservers = [['ip'=>'149.154.175.40','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000e','port'=>80,'dc'=>1],['ip'=>'149.154.167.40','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000e','port'=>80,'dc'=>2],['ip'=>'149.154.175.117','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000e','port'=>80,'dc'=>3]];
 	public readonly bool $ipv6;
 	public readonly bool $testmode;
 	public readonly int $dc;
@@ -36,8 +38,6 @@ final class Session {
 	public readonly string $username;
 	public readonly string $password;
 	public readonly string $database;
-	private object $mysql;
-	private object $sqlite;
 
 	public function __construct(public readonly string | null $name,private string | null $mode,Settings $settings){
 		$this->ipv6 = is_bool($settings->ipv6) ? $settings->ipv6 : false;

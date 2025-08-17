@@ -10,7 +10,7 @@ final class TcpTransport {
 	public object $tcpClient;
 	private object $protocol;
 
-	public function __construct(string $ip,int $port,int $dcid,? ProtocolType $protocol = null,? array $proxy = null){
+	public function __construct(string $ip,int $port,int $dc_id,? ProtocolType $protocol = null,? array $proxy = null,bool $test_mode = false,bool $media_only = false){
 		$this->tcpClient = new TcpClient();
 		$this->tcpClient->connect($ip,$port,$proxy);
 		if(is_null($proxy) === false and strtoupper($proxy['type']) === 'MTPROXY'):
@@ -23,7 +23,7 @@ final class TcpTransport {
 			$protocol === ProtocolType::ABRIDGED => new $class(tcpClient : $this->tcpClient),
 			$protocol === ProtocolType::INTERMEDIATE => new $class(tcpClient : $this->tcpClient),
 			$protocol === ProtocolType::PADDEDINTERMEDIATE => new $class(tcpClient : $this->tcpClient),
-			$protocol === ProtocolType::OBFUSCATED => new $class(tcpClient : $this->tcpClient,dcid : $dcid,secret : (is_null($proxy) ? null : $proxy['secret'])),
+			$protocol === ProtocolType::OBFUSCATED => new $class(tcpClient : $this->tcpClient,dc_id : $dc_id,test_mode : $test_mode,media_only : $media_only,secret : (is_null($proxy) ? null : $proxy['secret'])),
 			$protocol === ProtocolType::HTTP => new $class(host : $ip,port : $port),
 			default => new $class
 		};
@@ -42,7 +42,6 @@ final class TcpTransport {
 			try {
 				return $this->protocol->decode($this->tcpClient);
 			} catch(\Throwable $error){
-				
 				throw $error;
 			}
 		endif;

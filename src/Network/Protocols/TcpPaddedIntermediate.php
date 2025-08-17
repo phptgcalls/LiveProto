@@ -10,7 +10,7 @@ use Tak\Liveproto\Utils\Binary;
 
 final class TcpPaddedIntermediate {
 	public function __construct(? TcpClient $tcpClient = null){
-		is_null($tcpClient) || $tcpClient->write(str_repeat(chr(221),4));
+		$tcpClient?->write(str_repeat(chr(221),4));
 	}
 	public function encode(string $body) : string {
 		$binary = new Binary();

@@ -29,7 +29,6 @@ final class AuthKey {
 		$newNonceHash = substr(sha1($writer->read(),true),4);
 		$writer->write($newNonceHash);
 		return $writer->readLargeInt(128);
-		// return strval(gmp_import($newNonceHash,16));
 	}
 }
 

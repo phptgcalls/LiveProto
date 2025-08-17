@@ -1020,7 +1020,7 @@ foreach($formatted as $newEntity){
 
 ---
 
-## fromBotAPI()
+## from_file_id()
 
 Parses a Telegram Bot API-style file_id and converts it into an internal file representation
 
@@ -1052,7 +1052,7 @@ echo 'File downloaded in : ' , $realpath;
 
 ---
 
-## toBotAPI()
+## to_file_id()
 
 Encodes an internal MTProto file reference into a Telegram Bot API‐style `file_id` string
 

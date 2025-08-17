@@ -6,7 +6,14 @@ namespace Tak\Liveproto\Utils;
 
 abstract class Helper {
 	static public function generateRandomLong() : int {
-		return intval(gmp_import(random_bytes(0x8)));
+		return random_int(PHP_INT_MIN,PHP_INT_MAX);
+	}
+	static public function generateRandomLargeInt(int $bits = 0x40) : string {
+		$bytes = intdiv($bits,8);
+		return strval(gmp_import(random_bytes($bytes),$bytes));
+	}
+	static public function generateRandomString(int $length = 0x10) : string {
+		return substr(str_shuffle(implode([...range('A','Z'),...range('a','z'),...range(0,9)])),-abs($length));
 	}
 	static public function getByteArray(object | string | int $integer) : string {
 		if(is_object($integer)):

@@ -47,6 +47,13 @@
 			body {
 				font-family: 'Cardo', 'Noto Kufi Arabic', serif;
 			}
+			@media(max-width: 640px){
+				.markdown-section h1, .markdown-section h2 {
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+			}
 		</style>
 	</head>
 	<script>
@@ -64,7 +71,7 @@
 					'/fa/(.*)': '/fa/$1',
 					'/en/(.*)': '/en/$1',
 				},
-				name: '<span><img src="https://raw.githubusercontent.com/TakNone/LiveProto/master/docs/_images/logo.svg" alt="Image" style="vertical-align: middle; height: 20%;"/></span>',
+				name: 'LiveProto',
 				nameLink: {
 					'/fa/': '#/fa/',
 					'/en/': '#/en/',
@@ -76,21 +83,22 @@
 				coverpage: ['/en/','/fa/'],
 				executeScript: true,
 				loadSidebar: true,
-				loadNavbar: true,
+				loadNavbar: 'navbar.md',
 				autoHeader: false,
 				nativeEmoji: true,
-				notFoundPage: true,
+				notFoundPage: '404.md',
 				search: {
+					maxAge: 60000,
 					depth: 6,
 					paths: 'auto',
 					placeholder: {
 						'/fa/': 'جستجو',
 						'/en/': 'Search'
-						},
+					},
 					noData: {
 						'/fa/': 'یافت نشد !',
 						'/en/': 'No results !'
-						},
+					},
 					pathNamespaces: ['/fa','/en']
 				},
 				plugins: [
@@ -133,6 +141,10 @@
 		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
 		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-json.min.js"></script>
 		<script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-php.min.js"></script>
+
+		<!-- Vue: Development -->
+		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script> -->
+		<!-- <script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.runtime.global.js"></script> -->
 
 		<!-- Vue: Production -->
 		<script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>

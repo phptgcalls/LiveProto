@@ -24,6 +24,7 @@
 
   - [متود های خام](https://core.telegram.org/methods)
   - [نقشه TL](https://core.telegram.org/schema)
+  - [داکیومنت کامل TL](https://tl.liveproto.dev)
 
 - کلاس ها
 

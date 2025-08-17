@@ -49,7 +49,7 @@ trait Upload {
 				endif;
 				$progress += strlen($part);
 				$percent = ($progress / $size) * 100;
-				if(isset($isSaved->bool) and $isSaved->bool):
+				if($isSaved):
 					if(is_null($progresscallback) === false):
 						if(async($progresscallback(...),$percent)->await() === false):
 							break;

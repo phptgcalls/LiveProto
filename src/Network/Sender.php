@@ -116,7 +116,7 @@ final class Sender {
 			$binary = $bindTemp->stream();
 			Logging::log('Bind Temp','Expires at : '.strval($expires_at).' , EncryptedMessage ID : '.$message_id,0);
 			$sender->sendPacket(request : $binary,messageId : $message_id);
-			return $sender->receive(request : $binary,timeout : 10)->bool;
+			return $sender->receive(request : $binary,timeout : 10);
 		} catch(Errors $error){
 			if($error->getCode() == 400):
 				if($try > 0):
@@ -143,18 +143,18 @@ final class Sender {
 				else:
 					switch($object->status):
 						case 'success':
+							if(isset($object->result->chats,$object->result->users) and is_array($object->result->chats) and is_array($object->result->users)):
+								$this->handler->saveAccessHash($object->result);
+							endif;
 							if(isset($object->result->vector) and is_callable($object->result->vector)):
 								$constructor = All::getConstructor($request->readInt());
 								$comments = Tl::parseDocComment($constructor);
 								$return = Tl::parseType($comments['return']);
-								$object->result->vector = call_user_func($object->result->vector,$return['type'],true);
+								$object->result = call_user_func($object->result->vector,$return['type'],true);
 								$request->undo();
 							endif;
 							if(isset($object->result->bool) and is_callable($object->result->bool)):
-								$object->result->bool = call_user_func($object->result->bool,true);
-							endif;
-							if(isset($object->result->chats,$object->result->users) and is_array($object->result->chats) and is_array($object->result->users)):
-								$this->handler->saveAccessHash($object->result);
+								$object->result = call_user_func($object->result->bool,true);
 							endif;
 							$deferred->complete($object->result);
 							break;

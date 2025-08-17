@@ -20,23 +20,25 @@
 
 - `changeDC` => <kbd>void</kbd> : Immediately switches to a different data center
 
-  - <kbd>int $dcid</kbd> , the target data center ID
+  - <kbd>int $dc_id</kbd> , the target data center ID
 
 - `switchDC` => <kbd>self</kbd> : Prepares switching to another DC, with flags
 
-  - <kbd>? int $dcid = null</kbd> , target DC ID (omit to cycle)
+  - <kbd>? int $dc_id = null</kbd> , target DC ID (omit to cycle)
   - <kbd>bool $cdn = false</kbd> , whether to prefer a CDN endpoint
   - <kbd>bool $media = false</kbd> , whether this is for a media connection
+  - <kbd>bool $tcpo = false</kbd> , whether this is for supports connection with [transport obfuscation](en/enums.md#ProtocolType)
   - <kbd>bool $next = false</kbd> , whether to move to the “next” DC in list
   - <kbd>int $expires_in = 0</kbd> , time ( in seconds ) for temporary auth
 
 - `getTemp` => <kbd>self</kbd> : Retrieves a temporary auth client
 
+  - <kbd>int $dc_id</kbd> , target DC ID
   - <kbd>int $expires_in</kbd> , TTL ( in seconds ) of the temporary auth settings
 
 - `checkAuthorization` => <kbd>bool</kbd> : Checks if the client is authorized on a DC
 
-  - <kbd>int $dcid</kbd> , the DC ID to verify
+  - <kbd>int $dc_id</kbd> , the DC ID to verify
 
 - `getAuthorizations` => <kbd>array</kbd> : Returns all active authorizations
 

@@ -59,7 +59,7 @@ trait Download {
 				$iv = substr($getFile->encryption_iv,0,-4).pack('N',$offset >> 4);
 				$bytes = openssl_decrypt($getCdnFile->bytes,'AES-256-CTR',$key,OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING,$iv);
 				$hashes = $client->upload->getCdnFileHashes(file_token : $getFile->file_token,offset : $offset);
-				foreach($hashes->vector as $i => $value):
+				foreach($hashes as $i => $value):
 					$hash = substr($bytes,$value->limit * $i,$value->limit);
 					if($value->hash !== hash('sha256',$hash,true)):
 						throw new \Exception('File validation failed !');

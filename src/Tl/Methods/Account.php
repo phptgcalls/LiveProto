@@ -33,7 +33,7 @@ trait Account {
 		endif;
 		$new_settings = $this->account->passwordInputSettings(new_algo : $new_algo,new_password_hash : $new_hash,hint : $hint,email : $email);
 		$result = $this->account->updatePasswordSettings(password : $password,new_settings : $new_settings);
-		if(is_null($new) === false and $result->bool === true):
+		if(is_null($new) === false and $result === true):
 			$this->load->password = $new;
 		endif;
 		return $result;

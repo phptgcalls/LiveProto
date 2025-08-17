@@ -18,9 +18,9 @@ final class TcpObfuscated {
 	private TcpPaddedIntermediate $protocol;
 	protected Obfuscation $obfuscation;
 
-	public function __construct(TcpClient $tcpClient,int $dcid,bool $testmode = false,bool $mediaDC = false,? string $secret = null){
+	public function __construct(TcpClient $tcpClient,int $dc_id,bool $test_mode = false,bool $media_only = false,? string $secret = null){
 		$this->protocol = new TcpPaddedIntermediate();
-		$this->obfuscation = new Obfuscation(protocol : ProtocolType::PADDEDINTERMEDIATE,dcid : $dcid,testmode : $testmode,mediaDC : $mediaDC,secret : $secret);
+		$this->obfuscation = new Obfuscation(protocol : ProtocolType::PADDEDINTERMEDIATE,dc_id : $dc_id,test_mode : $test_mode,media_only : $media_only,secret : $secret);
 		$tcpClient->write($this->obfuscation->init);
 	}
 	public function encode(string $body) : string {

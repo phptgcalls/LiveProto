@@ -46,17 +46,19 @@ final class Connect {
 		);
 		$expires_at = intval($expires_in > 0 ? time() + $expires_in : 0);
 		$dc = ($media_only ? -1 : +1) * (abs($dc_id) + ($test_mode ? 1000 : 0));
-		$pqInnerData = match($expires_at){
-			0 => match($dc_id){
-				0 => new \Tak\Liveproto\Tl\Types\Other\PQInnerData($pqInnerParams),
-				default => new \Tak\Liveproto\Tl\Types\Other\PQInnerDataDc($pqInnerParams + array('dc'=>$dc))
-			},
-			default => match($dc_id){
-				0 => new \Tak\Liveproto\Tl\Types\Other\PQInnerDataTemp($pqInnerParams + array('expires_in'=>$expires_in)),
-				default => new \Tak\Liveproto\Tl\Types\Other\PQInnerDataTempDc($pqInnerParams + array('dc'=>$dc,'expires_in'=>$expires_in))
-			}
-		};
-		# $pqInnerData = $expires_in > 0 ? (new \Tak\Liveproto\Tl\Types\Other\PQInnerDataTemp)(pq : Helper::getByteArray($pq),p : Helper::getByteArray(min($p,$q)),q : Helper::getByteArray(max($p,$q)),nonce : $nonce,server_nonce : $serverNonce,new_nonce : $newNonce,expires_in : $expires_in) : (new \Tak\Liveproto\Tl\Types\Other\PQInnerData)(pq : Helper::getByteArray($pq),p : Helper::getByteArray(min($p,$q)),q : Helper::getByteArray(max($p,$q)),nonce : $nonce,server_nonce : $serverNonce,new_nonce : $newNonce);
+		if($expires_at === 0):
+			if($dc_id === 0):
+				$pqInnerData = new \Tak\Liveproto\Tl\Types\Other\PQInnerData($pqInnerParams);
+			else:
+				$pqInnerData = new \Tak\Liveproto\Tl\Types\Other\PQInnerDataDc($pqInnerParams + array('dc'=>$dc));
+			endif;
+		else:
+			if($dc_id === 0):
+				$pqInnerData = new \Tak\Liveproto\Tl\Types\Other\PQInnerDataTemp($pqInnerParams + array('expires_in'=>$expires_in));
+			else:
+				$pqInnerData = new \Tak\Liveproto\Tl\Types\Other\PQInnerDataTempDc($pqInnerParams + array('dc'=>$dc,'expires_in'=>$expires_in));
+			endif;
+		endif;
 		$data = $pqInnerData->read();
 		Logging::log('Fingerprints',implode(chr(0x20).chr(0x2c).chr(0x20),$reqPQ->server_public_key_fingerprints),0);
 		foreach($reqPQ->server_public_key_fingerprints as $fingerprint):

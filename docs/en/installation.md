@@ -76,13 +76,23 @@ require_once 'vendor/autoload.php';
 
 ```json
 {
-    "require": {
-        "taknone/liveproto": "*"
-    },
-    "config": {
-        "allow-plugins": {
-            "taknone/bootstrapper": true
+    "name": "yourname/yourproject",
+    "description": "Project Description",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Yourname\\Yourproject\\": "src/"
         }
+    },
+    "authors": [
+        {
+            "name": "Tak None",
+            "email": "MrTakNone@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "taknone/liveproto": "*"
     }
 }
 ```

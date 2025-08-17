@@ -8,7 +8,7 @@ use Tak\Liveproto\Network\TcpClient;
 
 final class TcpAbridged {
 	public function __construct(? TcpClient $tcpClient = null){
-		is_null($tcpClient) || $tcpClient->write(chr(239));
+		$tcpClient?->write(chr(239));
 	}
 	public function encode(string $body) : string {
 		$length = strlen($body) >> 2;

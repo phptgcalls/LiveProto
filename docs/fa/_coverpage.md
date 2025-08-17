@@ -1,12 +1,6 @@
 <!-- markdownlint-disable first-line-h1 -->
 
-<div style = 'max-width : 180px; width : 100%; margin : 0 auto'>
-    <img
-        src = 'https://raw.githubusercontent.com/TakNone/LiveProto/master/docs/_images/logo.svg'
-        alt = 'logo'
-        style = 'width : 100%; height : auto; display : block'
-    />
-</div>
+![logo](https://raw.githubusercontent.com/TakNone/LiveProto/master/docs/_images/fixed-logo.svg)
 
 # لایو پروتو <small>0.0.1</small>
 

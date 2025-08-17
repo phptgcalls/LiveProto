@@ -24,6 +24,7 @@
 
   - [Raw Methods](https://core.telegram.org/methods)
   - [TL-schema](https://core.telegram.org/schema)
+  - [Full TL Document](https://tl.liveproto.dev)
 
 - Classes
 

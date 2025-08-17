@@ -25,7 +25,7 @@ trait FileId {
 	public const REMOVE_PHOTO_VOLUME_AND_LOCALID = 32;
 	public const ADD_PHOTO_SIZE_SOURCE = 22;
 
-	public function fromBotAPI(string $file_id) : object {
+	public function from_file_id(string $file_id) : object {
 		$file = Rle::decode(Tools::base64_url_decode($file_id));
 		$version = ord(substr($file,-1,1));
 		$subVersion = intval($version >= 4 ? ord(substr($file,-2,1)) : 0);
@@ -164,7 +164,7 @@ trait FileId {
 		};
 		return $anonymous->setClient($this);
 	}
-	public function toBotAPI(FileIdType $file_type,int $dc_id,object $input_location,int $version = 4,int $sub_version = 54) : string {
+	public function to_file_id(FileIdType $file_type,int $dc_id,object $input_location,int $version = 4,int $sub_version = 54) : string {
 		$type = $file_type->toId();
 		if(isset($input_location->file_reference)):
 			$type |= self::FILE_REFERENCE_FLAG;
