@@ -25,7 +25,7 @@ require_once 'liveproto.php';
 ```php
 <?php
 
-define('LP_VERSION','0.0.3');
+define('LP_VERSION','0.0.5');
 
 if(file_exists('liveproto.php') === false):
     copy('https://installer.liveproto.dev/liveproto.php','liveproto.php');
@@ -39,11 +39,11 @@ OR
 ```php
 <?php
 
-if(file_exists('liveproto-v0.0.3.phar') === false):
-    copy('https://phar.liveproto.dev/v0.0.3/liveproto.phar','liveproto-v0.0.3.phar');
+if(file_exists('liveproto-v0.0.5.phar') === false):
+    copy('https://phar.liveproto.dev/v0.0.5/liveproto.phar','liveproto-v0.0.5.phar');
 endif;
 
-require_once 'liveproto-v0.0.3.phar';
+require_once 'liveproto-v0.0.5.phar';
 ```
 
 ---
@@ -76,23 +76,13 @@ require_once 'vendor/autoload.php';
 
 ```json
 {
-    "name": "yourname/yourproject",
-    "description": "Project Description",
-    "type": "project",
-    "autoload": {
-        "psr-4": {
-            "Yourname\\Yourproject\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Tak None",
-            "email": "MrTakNone@gmail.com"
-        }
-    ],
     "require": {
-        "php": ">=8.2",
         "taknone/liveproto": "*"
+    },
+    "config": {
+        "allow-plugins": {
+            "taknone/bootstrapper": true
+        }
     }
 }
 ```
