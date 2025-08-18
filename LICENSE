@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+I want to express my sincere gratitude to the Telegram Android open-source project and to TDLib. Studying your codebase, documentation, and example implementations provided essential guidance during the development of my MTProto library. Your clear design patterns, protocol handling examples, and focused attention to performance and reliability significantly accelerated my work and helped me avoid many pitfalls. Thank you to every contributor - your open, shared effort made this possible
