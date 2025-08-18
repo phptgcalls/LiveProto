@@ -6,6 +6,8 @@ namespace Tak\Liveproto\Network;
 
 use Tak\Liveproto\Tl\Caller;
 
+use Tak\Liveproto\Tl\DocBuilder;
+
 use Tak\Liveproto\Utils\Tools;
 
 use Tak\Liveproto\Utils\Settings;
@@ -45,6 +47,7 @@ final class Client extends Caller implements Stringable {
 	public readonly Updates $handler;
 	protected ? object $locker;
 	public array $dcOptions;
+	public ? object $proxy;
 	public object $config;
 	public bool $connected = false;
 	public int $takeoutid = 0;
@@ -73,6 +76,8 @@ final class Client extends Caller implements Stringable {
 		endif;
 		$this->mutex = new LocalMutex;
 		$this->dcOptions = array(new \Tak\Liveproto\Tl\Types\Other\DcOption(['id'=>$this->load->dc,'ip_address'=>$this->load->ip,'port'=>$this->load->port,'client'=>$this,'expires_at'=>0]));
+		$proxy = $this->settings->getProxy();
+		$this->proxy = (is_null($proxy) === false and strtoupper($proxy['type']) === 'MTPROXY') ? $this->inputClientProxy(address : parse_url($proxy['address'],PHP_URL_HOST),port : parse_url($proxy['address'],PHP_URL_PORT)) : null;
 	}
 	public function connect(bool $reconnect = false,bool $reset = false) : void {
 		if($reconnect):
@@ -86,7 +91,7 @@ final class Client extends Caller implements Stringable {
 		endif;
 		$this->sender = new Sender($this->transport,$this->session,$this->handler);
 		$getConfig = $this->help->getConfig(raw : true);
-		$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,query : $getConfig,params : $this->settings->params,raw : true);
+		$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,proxy : $this->proxy,query : $getConfig,params : $this->settings->params,raw : true);
 		if($this->settings->receiveupdates === false):
 			$query = $this->invokeWithoutUpdates(query : $query,raw : true);
 		endif;
@@ -140,7 +145,7 @@ final class Client extends Caller implements Stringable {
 						endif;
 						if($is_authorized === false):
 							$importAuthorization = $client->auth->importAuthorization(id : $authorization->id,bytes : $authorization->bytes,raw : true);
-							$query = $client->initConnection(api_id : $client->load->api_id,device_model : $client->settings->devicemodel,system_version : $client->settings->systemversion,app_version : $client->settings->appversion,system_lang_code : $client->settings->systemlangcode,lang_pack : $client->settings->langpack,lang_code : $client->settings->langcode,query : $importAuthorization,params : $this->settings->params,raw : true);
+							$query = $client->initConnection(api_id : $client->load->api_id,device_model : $client->settings->devicemodel,system_version : $client->settings->systemversion,app_version : $client->settings->appversion,system_lang_code : $client->settings->systemlangcode,lang_pack : $client->settings->langpack,lang_code : $client->settings->langcode,proxy : $this->proxy,query : $importAuthorization,params : $this->settings->params,raw : true);
 							if($client->receiveupdates === false):
 								$query = $client->invokeWithoutUpdates(query : $query,raw : true);
 							endif;
@@ -200,12 +205,7 @@ final class Client extends Caller implements Stringable {
 		}
 	}
 	public function layer(bool $secret = false) : int {
-		$layer = read(dirname(__DIR__).DIRECTORY_SEPARATOR.'Tl'.DIRECTORY_SEPARATOR.($secret ? 'secret.tl' : 'api.tl'));
-		if(preg_match('~\/\/\sLAYER\s(?<layer>\d+)~i',$layer,$match)):
-			return intval($match['layer']);
-		else:
-			throw new \Exception('The desired layer was not found !');
-		endif;
+		return DocBuilder::layer($secret);
 	}
 	public function registerFilteredFunctions() : void {
 		$functions = get_defined_functions();
@@ -324,6 +324,7 @@ final class Client extends Caller implements Stringable {
 		return array(
 			'config'=>isset($this->config) ? $this->config : new \stdClass,
 			'dcOptions'=>$this->dcOptions,
+			'proxy'=>$this->proxy,
 			'devicemodel'=>$this->settings->devicemodel,
 			'systemversion'=>$this->settings->systemversion,
 			'appversion'=>$this->settings->appversion,

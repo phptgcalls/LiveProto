@@ -9,6 +9,8 @@ use Tak\Liveproto\Enums\PeerType;
 trait Peers {
 	private const MIN_CHAT_ID = -999999999999;
 	private const MIN_CHANNEL_ID = (1 << 31) - 2000000000000;
+	private const MIN_MONOFORUM_CHANNEL_ID = -4000000000000;
+	private const MAX_MONOFORUM_CHANNEL_ID = - (1 << 31) - 1 - 2000000000000;
 	private const MIN_SECRET_CHAT_ID = - (1 << 31) - 2000000000000;
 
 	public function get_input_peer(string | int | null | object $peer,int $hash = 0) : mixed {
@@ -54,6 +56,8 @@ trait Peers {
 				if(self::MIN_CHAT_ID <= $peer):
 					$peer = - $peer;
 				elseif(self::MIN_CHANNEL_ID <= $peer):
+					$peer = - $peer - 1000000000000;
+				elseif(self::MIN_MONOFORUM_CHANNEL_ID <= $peer and self::MAX_MONOFORUM_CHANNEL_ID > $peer):
 					$peer = - $peer - 1000000000000;
 				elseif(self::MIN_SECRET_CHAT_ID <= $peer):
 					$peer = $peer - 2000000000000;
