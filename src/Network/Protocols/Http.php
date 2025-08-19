@@ -59,7 +59,7 @@ final class Http {
 		else:
 			$close = ($version === '1.0');
 		endif;
-		assert($close,'The http connection is closed !');
+		assert($close === false,'The http connection is closed !');
 		if(isset($headers['content-length'])):
 			$length = intval($headers['content-length']);
 			if($length > 0):

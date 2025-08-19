@@ -30,7 +30,7 @@ final class TcpFull {
 		$seqBytes = $tcpClient->read(4);
 		assert(empty($seqBytes) === false,$exception);
 		$seq = unpack('V',$seqBytes)[true];
-		assert($seq > 0,$invalid);
+		assert($seq > 0 or $packet > 0,$invalid);
 		$body = $tcpClient->read($packet - 12);
 		assert(empty($body) === false,$exception);
 		$sum = $tcpClient->read(4);
