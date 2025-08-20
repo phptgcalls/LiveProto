@@ -31,6 +31,13 @@
     "require": {
         "php": ">=8.2",
         "ext-gmp": "*",
+        "ext-json": "*",
+        "ext-xml": "*",
+        "ext-dom": "*",
+        "ext-filter": "*",
+        "ext-hash": "*",
+        "ext-zlib": "*",
+        "ext-fileinfo": "*",
         "amphp/amp": "^3.1.0",
         "amphp/http-client": "^5.3.3",
         "amphp/websocket-client": "^2.0.1",
