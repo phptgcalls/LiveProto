@@ -379,21 +379,21 @@ trait SecretChat {
 		return intval($chat['out_seq_no'] * 2 + intval($chat['creator'] === true));
 	}
 	public function get_secret_chat(string | int | object $peer) :  array {
-		static $cache = array();
 		$hash = md5(serialize($peer));
-		if(key_exists($hash,$cache) === false):
+		$this->secretChats = array_slice(array : $this->secretChats,offset : -200,preserve_keys : true);
+		if(key_exists($hash,$this->secretChats) === false):
 			try {
-				$cache[$hash] = $this->get_peer_id($peer);
+				$this->secretChats[$hash] = $this->get_peer_id($peer);
 			} catch(\Throwable){
 				/* You may get an `CHAT_ID_INVALID` error , Ignore it */
 				try {
-					$cache[$hash] = intval($peer);
+					$this->secretChats[$hash] = intval($peer);
 				} catch(\Throwable){
 					throw new \InvalidArgumentException('Peer not found !');
 				}
 			}
 		endif;
-		return $this->get_secret($cache[$hash]);
+		return $this->get_secret($this->secretChats[$hash]);
 	}
 	public function remove_secret_chat(string | int | object $peer) : void {
 		$chat = $this->get_secret_chat(peer : $peer);

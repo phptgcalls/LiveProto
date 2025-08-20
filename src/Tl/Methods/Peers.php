@@ -73,13 +73,13 @@ trait Peers {
 				try {
 					$entity = $this->inputPeerUser(user_id : $peer,access_hash : $hash);
 					$user = $this->users->getFullUser($entity)->users[false];
-					$this->load->peers->setPeers(type : 'users',peers : [array('id'=>$user->id,'access_hash'=>$user->access_hash)]);
+					$this->load->peers->setPeers(type : 'users',peers : [array('id'=>$user->id,'access_hash'=>intval($user->access_hash))]);
 					return $entity;
 				} catch(\Throwable){
 					try {
 						$entity = $this->inputPeerChannel(channel_id : $peer,access_hash : $hash);
 						$channel = $this->channels->getFullChannel($entity)->chats[false];
-						$this->load->peers->setPeers(type : 'chats',peers : [array('id'=>$channel->id,'access_hash'=>$channel->access_hash)]);
+						$this->load->peers->setPeers(type : 'chats',peers : [array('id'=>$channel->id,'access_hash'=>intval($channel->access_hash))]);
 						return $entity;
 					} catch(\Throwable){
 						return $this->inputPeerChat(chat_id : $peer);
@@ -109,41 +109,41 @@ trait Peers {
 		endif;
 	}
 	public function get_peer_id(string | int | object $peer) : int {
-		static $cache = array();
 		$hash = md5(serialize($peer));
-		if(key_exists($hash,$cache) === false):
+		$this->peersId = array_slice(array : $this->peersId,offset : -200,preserve_keys : true);
+		if(key_exists($hash,$this->peersId) === false):
 			$id = match(true){
 				isset($peer->user_id) and is_int($peer->user_id) => $peer->user_id,
 				isset($peer->chat_id) and is_int($peer->chat_id) => $peer->chat_id,
 				isset($peer->channel_id) and is_int($peer->channel_id) => $peer->channel_id,
 				default => $this->get_full_peer($peer)->id
 			};
-			$cache[$hash] = $id;
+			$this->peersId[$hash] = $id;
 		endif;
-		return $cache[$hash];
+		return $this->peersId[$hash];
 	}
 	public function get_peer_type(string | int | object $peer) : object {
-		static $cache = array();
 		$hash = md5(serialize($peer));
-		if(key_exists($hash,$cache) === false):
+		$this->peersType = array_slice(array : $this->peersType,offset : -200,preserve_keys : true);
+		if(key_exists($hash,$this->peersType) === false):
 			$info = $this->get_peer($peer);
 			if(str_contains(get_class($info),'User')):
-				$cache[$hash] = match(true){
+				$this->peersType[$hash] = match(true){
 					$info->self => PeerType::SELF,
 					$info->bot => PeerType::BOT,
 					default => PeerType::USER
 				};
 			elseif(str_contains(get_class($info),'Chat')):
-				$cache[$hash] = PeerType::CHAT;
+				$this->peersType[$hash] = PeerType::CHAT;
 			elseif(str_contains(get_class($info),'Channel')):
-				$cache[$hash] = match(true){
+				$this->peersType[$hash] = match(true){
 					$info->broadcast => PeerType::CHANNEL,
 					$info->megagroup => PeerType::MEGAGROUP,
 					$info->gigagroup => PeerType::GIGAGROUP
 				};
 			endif;
 		endif;
-		return $cache[$hash];
+		return $this->peersType[$hash];
 	}
 }
 

@@ -68,7 +68,7 @@ trait Dialog {
 	public function get_channel_difference(mixed $channel,? object $filter = null,int $pts = 1,int $limit = 0x7fffffff) : \Generator {
 		$inputChannel = $this->get_input_peer($channel);
 		while(true):
-			Logging::log('Channel Difference','pts = '.$pts.' & date = '.$date.' & qts = '.$qts,0);
+			Logging::log('Channel Difference','pts = '.$pts.' & limit = '.$limit.' & channel id = '.$this->get_peer_id($inputChannel),0);
 			$difference = $this->updates->getChannelDifference(channel : $inputChannel,filter : is_null($filter) ? $this->channelMessagesFilterEmpty() : $filter,pts : $pts,limit : $limit,force : true);
 			if($difference instanceof \Tak\Liveproto\Tl\Types\Updates\ChannelDifference):
 				$pts = $difference->pts;
@@ -95,6 +95,7 @@ trait Dialog {
 			try {
 				$difference = $this->updates->getDifference(pts : $pts,date : $date,qts : $qts,pts_total_limit : 0x7fffffff,timeout : 3);
 			} catch(\Throwable $error){
+				Logging::log('Difference',$error->getMessage(),E_WARNING);
 				$difference = new \Tak\Liveproto\Tl\Types\Updates\DifferenceTooLong;
 			}
 			if($difference instanceof \Tak\Liveproto\Tl\Types\Updates\DifferenceTooLong):

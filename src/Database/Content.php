@@ -33,7 +33,7 @@ final class Content implements ArrayAccess {
 					$this->pending = strval(null);
 					$this->session->save();
 				elseif(empty($this->pending)):
-					$this->pending = EventLoop::delay($sleep,$this->save(...));
+					$this->pending = EventLoop::unreference(EventLoop::delay($sleep,$this->save(...)));
 				endif;
 			endif;
 		else:

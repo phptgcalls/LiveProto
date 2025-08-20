@@ -22,6 +22,8 @@ use Amp\DeferredFuture;
 
 use Amp\TimeoutCancellation;
 
+use Amp\Sync\LocalMutex;
+
 use Revolt\EventLoop;
 
 final class Sender {
@@ -134,6 +136,8 @@ final class Sender {
 		return $future->await($cancellation);
 	}
 	public function receivedLoop() : void {
+		static $mutex = new LocalMutex;
+		$lock = $mutex->acquire();
 		foreach($this->received as $hash => $object):
 			if(array_key_exists($hash,$this->receiveQueue)):
 				extract((array) $this->receiveQueue[$hash]);
@@ -169,6 +173,7 @@ final class Sender {
 				endif;
 			endif;
 		endforeach;
+		$lock->release();
 	}
 	public function receivePacket() : void {
 		while(isset($this->receiveLoop)):

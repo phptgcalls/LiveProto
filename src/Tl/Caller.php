@@ -39,6 +39,11 @@ use function Amp\delay;
 use function Amp\Future\await;
 
 abstract class Caller {
+	protected ? object $dhConfig = null;
+	protected array $peersType = array();
+	protected array $peersId = array();
+	protected array $secretChats = array();
+
 	use Account;
 	use Auth;
 	use Buttons;

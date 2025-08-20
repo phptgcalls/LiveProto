@@ -84,12 +84,12 @@ trait Auth {
 		$this->load->step = Authentication::NEEDCODE;
 		return $result;
 	}
-	public function cancel_code() : object {
+	public function cancel_code() : bool {
 		$result = $this->auth->cancelCode(phone_number : $this->load->phonenumber,phone_code_hash : $this->load->phonecodehash);
 		$this->load->step = Authentication::NEEDAUTHENTICATION;
 		return $result;
 	}
-	public function firebase_sms(? string $safety = null,? string $push = null) : object {
+	public function firebase_sms(? string $safety = null,? string $push = null) : bool {
 		if(is_null($safety) and is_null($push)):
 			$safety = 'ysFoP5VLrJhIlp1ZgFfziiX5IEGhdgzdWJ5diTzjTMI=';
 		endif;

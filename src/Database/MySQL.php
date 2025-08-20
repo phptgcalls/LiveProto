@@ -6,6 +6,8 @@ namespace Tak\Liveproto\Database;
 
 use Tak\Liveproto\Utils\Tools;
 
+use Tak\Liveproto\Utils\Logging;
+
 use Revolt\EventLoop;
 
 use Amp\Sync\LocalMutex;
@@ -42,6 +44,8 @@ final class MySQL implements AbstractDB , AbstractPeers {
 				endif;
 			endif;
 			$this->connection->prepare('UPDATE '.$table.' SET '.$key.' = :new')->execute(['new'=>$value]);
+		} catch(\Throwable $error){
+			Logging::log('MySQL',$error->getMessage(),E_WARNING);
 		} finally {
 			EventLoop::queue($lock->release(...));
 		}
@@ -91,6 +95,8 @@ final class MySQL implements AbstractDB , AbstractPeers {
 					implode(chr(44),array_map(fn(string $key) : string => strval($key.' = VALUES('.$key.')'),$keys))
 				))
 			)->execute($value);
+		} catch(\Throwable $error){
+			Logging::log('MySQL',$error->getMessage(),E_WARNING);
 		} finally {
 			EventLoop::queue($lock->release(...));
 		}

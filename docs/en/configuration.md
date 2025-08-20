@@ -35,16 +35,16 @@ $settings->setDC(1);
 $settings->setProtocol(Tak\Liveproto\Enums\ProtocolType::TcpFull);
 $settings->setProxy(type : 'socks5',address : '127.0.0.1:443',username : 'ProxyUser',password : 'ProxyPassword');
 $settings->setTakeout(message_users : true,message_chats : true,message_megagroups : true,message_channels : true);
-$params = new \Tak\Liveproto\Tl\Types\Other\JsonObject(
-	value : array(
-		new \Tak\Liveproto\Tl\Types\Other\JsonObjectValue(
-			key : 'tz_offset',
-			value : new \Tak\Liveproto\Tl\Types\Other\JsonNumber(
-				value : (float) (new DateTime('now',new DateTimeZone(date_default_timezone_get())))->getOffset()
-			)
-		)
+$params = new \Tak\Liveproto\Tl\Types\Other\JsonObject([
+	'value'=>array(
+		new \Tak\Liveproto\Tl\Types\Other\JsonObjectValue([
+			'key'=>'tz_offset',
+			'value'=>new \Tak\Liveproto\Tl\Types\Other\JsonNumber([
+				'value'=>(float) (new DateTime('now',new DateTimeZone(date_default_timezone_get())))->getOffset()
+			])
+		])
 	)
-);
+]);
 $settings->setParams($params);
 $settings->setSaveTime(3);
 $settings->setHideLog(false);

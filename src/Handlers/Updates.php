@@ -28,15 +28,17 @@ use Throwable;
 
 use function Amp\async;
 
+use function Amp\delay;
+
 final class Updates {
 	public readonly object $load;
-	private array $handlers;
+	private array $handlers = array();
+	private array $channelsPts = array();
 	protected LocalMutex $mutex;
 	protected Lock $lock;
 
 	public function __construct(public readonly object $client,private readonly object $session){
 		$this->load = $session->load();
-		$this->handlers = array();
 		$this->mutex = new LocalMutex;
 	}
 	public function addEventHandler(object | callable $callback,? string $unique = null,object | array ...$filters) : void {
@@ -69,10 +71,20 @@ final class Updates {
 		$unique = uniqid('LiveProto');
 		$deferredFuture = new DeferredFuture();
 		$checker = function(object $update) use($deferredFuture,$callback,&$checker,$unique) : void {
-			if(is_null($callback) or async($callback,$update)->await()):
-				$deferredFuture->complete($update);
-			endif;
-			$this->removeEventHandler($checker,$unique);
+			static $mutex = new LocalMutex;
+			$lock = $mutex->acquire();
+			try {
+				if($deferredFuture->isComplete() === false):
+					if(is_null($callback) or async($callback,$update)->await()):
+						$deferredFuture->complete($update);
+						$this->removeEventHandler($checker,$unique);
+					endif;
+				endif;
+			} catch(\Throwable $error){
+				Logging::log('Updates',$error->getMessage(),E_WARNING);
+			} finally {
+				$lock->release();
+			}
 		};
 		$this->addEventHandler($checker,$unique,array(new Filter\Update(...$updates)));
 		$deferredCancellation = new DeferredCancellation();
@@ -84,7 +96,7 @@ final class Updates {
 				$future = $this->deferredFuture->getFuture();
 				$cancellation = $this->deferredCancellation->getCancellation();
 				if($this->timeout > 0):
-					EventLoop::delay($this->timeout,fn(string $id) : null => $this->cancel(new TimeoutException('Operation timed out')));
+					EventLoop::unreference(EventLoop::delay($this->timeout,fn(string $id) : null => $this->cancel(new TimeoutException('Operation timed out'))));
 				endif;
 				$update = $future->await($cancellation);
 				return $update;
@@ -94,7 +106,7 @@ final class Updates {
 			}
 		};
 	}
-	public function applyUpdate(object $update) : void {
+	public function applyUpdate(object $update,bool $recovery = false) : void {
 		if(isset($update->seq)):
 			Logging::log('Updates','Checking SEQ of an update : '.$update->getClass(),0);
 			$state = $this->state();
@@ -110,8 +122,8 @@ final class Updates {
 				return;
 			elseif($state->seq + 1 < $update->seq_start):
 				Logging::log('Update Missed','local seq = '.$state->seq.' (+) 1 (<) seq_start = '.$update->seq_start,0);
-				$this->recoveringGaps();
-				$this->applyUpdate($update);
+				($recovery and isset($this->lock) === false) ? $this->recoveringGaps() : delay(0.5);
+				$this->applyUpdate($update,true);
 				return;
 			endif;
 			$state->date = $update->date;
@@ -134,26 +146,45 @@ final class Updates {
 				return;
 			elseif($state->qts + $update->qts_count < $update->qts):
 				Logging::log('Update Missed','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (<) qts = '.$update->qts,0);
-				$this->recoveringGaps();
-				$this->applyUpdate($update);
+				($recovery and isset($this->lock) === false) ? $this->recoveringGaps() : delay(0.5);
+				$this->applyUpdate($update,true);
 				return;
 			endif;
 		endif;
 		if(isset($update->pts,$update->pts_count)):
 			Logging::log('Updates','Checking PTS of an update : '.$update->getClass(),0);
-			$state = $this->state();
-			/* what about channels ? */
-			if($state->pts + $update->pts_count === $update->pts):
-				Logging::log('Update Accepted','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts,0);
-				$state->pts = $update->pts;
-			elseif($state->pts + $update->pts_count > $update->pts):
-				Logging::log('Update Skipped','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts,0);
-				return;
-			elseif($state->pts + $update->pts_count < $update->pts):
-				Logging::log('Update Missed','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts,0);
-				$this->recoveringGaps();
-				$this->applyUpdate($update);
-				return;
+			$channel_id = isset($update->channel_id) ? $update->channel_id : (isset($update->message->peer_id->channel_id) ? $update->message->peer_id->channel_id : 0);
+			if($channel_id === 0):
+				$state = $this->state();
+				if($state->pts + $update->pts_count === $update->pts):
+					Logging::log('Update Accepted','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts,0);
+					$state->pts = $update->pts;
+				elseif($state->pts + $update->pts_count > $update->pts):
+					Logging::log('Update Skipped','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts,0);
+					return;
+				elseif($state->pts + $update->pts_count < $update->pts):
+					Logging::log('Update Missed','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts,0);
+					($recovery and isset($this->lock) === false) ? $this->recoveringGaps() : delay(0.5);
+					$this->applyUpdate($update,true);
+					return;
+				endif;
+			else:
+				$pts = $this->getChannelPts($channel_id);
+				if($pts === 1):
+					Logging::log('Update Special Case','channel id = '.$channel_id.' & channel pts = '.$pts,0);
+					$this->setChannelPts($channel_id,$update->pts);
+				elseif($pts + $update->pts_count === $update->pts):
+					Logging::log('Update Accepted','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts,0);
+					$this->setChannelPts($channel_id,$update->pts);
+				elseif($pts + $update->pts_count > $update->pts):
+					Logging::log('Update Skipped','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts,0);
+					return;
+				elseif($pts + $update->pts_count < $update->pts):
+					Logging::log('Update Missed','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts,0);
+					($recovery) ? $this->recoveringChannel($channel_id,$pts) : delay(0.5);
+					$this->applyUpdate($update,true);
+					return;
+				endif;
 			endif;
 		endif;
 		Logging::log('Updates','Applying an update : '.$update->getClass(),0);
@@ -191,7 +222,13 @@ final class Updates {
 			case 'updatePtsChanged':
 				$this->state(reset : true);
 				break;
+			case 'updateNewAuthorization':
+				$this->state(reset : true);
+				break;
 			case 'updateChannelTooLong':
+				if(is_null($update->pts) === false):
+					$this->setChannelPts($update->channel_id,$update->pts);
+				endif;
 				$this->recoveringChannel(channel_id : $update->channel_id,pts : $update->pts);
 				return;
 			case 'updateMessageID':
@@ -274,18 +311,19 @@ final class Updates {
 			foreach($differences as $difference):
 				$newState = $difference->state ?? $difference->intermediate_state;
 				if(isset($difference->new_messages)):
-					array_map(fn(object $newMessage) : mixed => $this->applyUpdate(new \Tak\Liveproto\Tl\Types\Other\UpdateNewMessage(['message'=>$newMessage])),$difference->new_messages);
+					array_map(fn(object $newMessage) : mixed => async($this->applyUpdate(...),new \Tak\Liveproto\Tl\Types\Other\UpdateNewMessage(['message'=>$newMessage])),$difference->new_messages);
 				endif;
 				if(isset($difference->new_encrypted_messages)):
 					$start_qts = $newState->qts - count($difference->new_encrypted_messages);
 					$fn = function(object $newEncryptedMessage) use(&$start_qts) : void {
-						$this->applyUpdate(new \Tak\Liveproto\Tl\Types\Other\UpdateNewEncryptedMessage(['message'=>$newEncryptedMessage,'qts'=>++$start_qts]));
+						async($this->applyUpdate(...),new \Tak\Liveproto\Tl\Types\Other\UpdateNewEncryptedMessage(['message'=>$newEncryptedMessage,'qts'=>++$start_qts]));
 					};
 					array_map($fn,$difference->new_encrypted_messages);
 				endif;
 				if(isset($difference->other_updates)):
-					array_map($this->applyUpdate(...),$difference->other_updates);
+					array_map(fn(object $update) : mixed => async($this->applyUpdate(...),$update),$difference->other_updates);
 				endif;
+				delay(0.5);
 				$state->pts = $newState->pts;
 				$state->qts = $newState->qts;
 				$state->date = $newState->date;
@@ -295,25 +333,24 @@ final class Updates {
 		endif;
 		EventLoop::queue($unlock);
 	}
+	public function getChannelPts(int $channel_id) : int {
+		return key_exists($channel_id,$this->channelsPts) ? $this->channelsPts[$channel_id] : 1;
+	}
+	public function setChannelPts(int $channel_id,int $pts) : void {
+		$this->channelsPts[$channel_id] = $pts;
+	}
 	public function recoveringChannel(int $channel_id,? int $pts = null) : void {
-		static $cache = array();
-		$hash = md5(serialize($channel_id));
-		if(is_null($pts)):
-			if(key_exists($hash,$cache)):
-				$pts = $cache[$hash];
-			else:
-				$pts = 1;
-			endif;
-		endif;
+		$pts ??= $this->getChannelPts($channel_id);
 		$differences = $this->client->get_channel_difference(channel : $channel_id,pts : $pts);
 		foreach($differences as $difference):
 			if(isset($difference->new_messages)):
-				array_map(fn(object $newChannelMessage) : mixed => $this->applyUpdate(new \Tak\Liveproto\Tl\Types\Other\UpdateNewChannelMessage(['message'=>$newChannelMessage])),$difference->new_messages);
+				array_map(fn(object $newChannelMessage) : mixed => async($this->applyUpdate(...),new \Tak\Liveproto\Tl\Types\Other\UpdateNewChannelMessage(['message'=>$newChannelMessage])),$difference->new_messages);
 			endif;
 			if(isset($difference->other_updates)):
-				array_map($this->applyUpdate(...),$difference->other_updates);
+				array_map(fn(object $update) : mixed => async($this->applyUpdate(...),$update),$difference->other_updates);
 			endif;
-			$cache[$hash] = $difference->pts;
+			delay(0.5);
+			$this->setChannelPts($channel_id,$difference->pts);
 		endforeach;
 	}
 	public function processUpdate(object $update) : void {
@@ -368,9 +405,9 @@ final class Updates {
 	}
 	public function saveAccessHash(object $update) : void {
 		$chats = $update->chats;
-		$this->load->peers->setPeers(type : 'chats',peers : array_map(fn(mixed $peer) : array => array('id'=>$peer->id,'access_hash'=>$peer->access_hash),$chats));
+		$this->load->peers->setPeers(type : 'chats',peers : array_map(fn(mixed $peer) : array => array('id'=>$peer->id,'access_hash'=>intval($peer->access_hash)),$chats));
 		$users = $update->users;
-		$this->load->peers->setPeers(type : 'users',peers : array_map(fn(mixed $peer) : array => array('id'=>$peer->id,'access_hash'=>$peer->access_hash),$users));
+		$this->load->peers->setPeers(type : 'users',peers : array_map(fn(mixed $peer) : array => array('id'=>$peer->id,'access_hash'=>intval($peer->access_hash)),$users));
 	}
 	public function __debugInfo() : array {
 		return array(
