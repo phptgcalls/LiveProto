@@ -29,7 +29,7 @@ Usable by :
   - Recovery email for password reset
 
 ##### <pre>Returns</pre>
-An instance of [Bool](https://core.telegram.org/type/Bool)
+Bool
 
 ##### <pre>Example</pre>
 ```php
@@ -54,7 +54,7 @@ Usable by :
   - The purpose of the email verification request
 
 ##### <pre>Returns</pre>
-An instance of [SentEmailCode](https://core.telegram.org/type/account.SentEmailCode)
+An instance of [SentEmailCode](https://tl.liveproto.dev/#/type/account.SentEmailCode)
 
 ##### <pre>Example</pre>
 ```php
@@ -79,7 +79,7 @@ Usable by :
   - The purpose for which the email verification is being performed
 
 ##### <pre>Returns</pre>
-An instance of [Bool](https://core.telegram.org/type/Bool)
+An instance of [EmailVerified](https://tl.liveproto.dev/#/type/account.EmailVerified)
 
 ##### <pre>Example</pre>
 ```php
@@ -101,10 +101,10 @@ Usable by :
   - The phone to which the code will be sent
 
 - ...settings(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
-  - Any additional parameters you give will be passed to the [codeSettings](https://core.telegram.org/constructor/codeSettings) construct
+  - Any additional parameters you give will be passed to the [codeSettings](https://tl.liveproto.dev/#/constructor/codeSettings) construct
 
 ##### <pre>Returns</pre>
-An instance of [SentCode](https://core.telegram.org/constructor/auth.sentCode)
+An instance of [SentCode](https://tl.liveproto.dev/#/constructor/auth.sentCode)
 
 ##### <pre>Example</pre>
 ```php
@@ -137,7 +137,7 @@ Usable by :
   - Set email verification
 
 ##### <pre>Returns</pre>
-An instance of [Authorization](https://core.telegram.org/constructor/authorization)
+An instance of [Authorization](https://tl.liveproto.dev/#/constructor/authorization)
 
 ##### <pre>Example</pre>
 ```php
@@ -168,7 +168,7 @@ Usable by :
   - Set a last name for your account
 
 ##### <pre>Returns</pre>
-An instance of [Authorization](https://core.telegram.org/constructor/authorization)
+An instance of [Authorization](https://tl.liveproto.dev/#/constructor/authorization)
 
 ##### <pre>Example</pre>
 ```php
@@ -186,7 +186,7 @@ Usable by :
 - [ ] Bots
 
 ##### <pre>Returns</pre>
-An instance of [SentCode](https://core.telegram.org/constructor/auth.sentCode)
+An instance of [SentCode](https://tl.liveproto.dev/#/constructor/auth.sentCode)
 
 ##### <pre>Example</pre>
 ```php
@@ -204,7 +204,7 @@ Usable by :
 - [ ] Bots
 
 ##### <pre>Returns</pre>
-An instance of [Bool](https://core.telegram.org/type/Bool)
+Bool
 
 ##### <pre>Example</pre>
 ```php
@@ -229,7 +229,7 @@ Usable by :
   - iOS push secret
 
 ##### <pre>Returns</pre>
-An instance of [Bool](https://core.telegram.org/type/Bool)
+Bool
 
 ##### <pre>Example</pre>
 ```php
@@ -247,7 +247,7 @@ Usable by :
 - [x] Bots
 
 ##### <pre>Returns</pre>
-An instance of [LoggedOut](https://core.telegram.org/constructor/auth.loggedOut)
+An instance of [LoggedOut](https://tl.liveproto.dev/#/constructor/auth.loggedOut)
 
 ##### <pre>Example</pre>
 ```php
@@ -291,7 +291,7 @@ Usable by :
   - Login token embedded in QR code
 
 ##### <pre>Returns</pre>
-An instance of [Authorization](https://core.telegram.org/constructor/authorization)
+An instance of [Authorization](https://tl.liveproto.dev/#/constructor/authorization)
 
 ##### <pre>Example</pre>
 ```php
@@ -316,7 +316,7 @@ Usable by :
   - Set a time out for waiting
 
 ##### <pre>Returns</pre>
-An instance of [Authorization](https://core.telegram.org/constructor/authorization)
+An instance of [Authorization](https://tl.liveproto.dev/#/constructor/authorization)
 
 ##### <pre>Example</pre>
 ```php
@@ -1120,7 +1120,7 @@ Usable by :
   - Optional geo-location for the query
 
 ##### <pre>Returns</pre>
-An instance of [BotResults](https://core.telegram.org/type/messages.BotResults) containing inline query results,with a `click` helper
+An instance of [BotResults](https://tl.liveproto.dev/#/type/messages.BotResults) containing inline query results,with a `click` helper
 
 ##### <pre>Example</pre>
 ```php
@@ -1153,10 +1153,10 @@ Usable by :
   - Bot username , ID or bot entity whose inline results you want
 
 - id(<small>string</small>) <kbd style="color : red">required</kbd> :
-  - The ID of the inline result has been prepared [PreparedInlineMessage](https://core.telegram.org/bots/api#preparedinlinemessage)
+  - The ID of the inline result has been prepared [PreparedInlineMessage](https://tl.liveproto.dev/#/bots/api#preparedinlinemessage)
 
 ##### <pre>Returns</pre>
-An instance of [PreparedInlineMessage](https://core.telegram.org/constructor/messages.PreparedInlineMessage) with a `click` closure
+An instance of [PreparedInlineMessage](https://tl.liveproto.dev/#/constructor/messages.PreparedInlineMessage) with a `click` closure
 
 ##### <pre>Example</pre>
 ```php
@@ -1189,7 +1189,7 @@ Usable by :
   - Target peer ( chat ) where the result will be sent
 
 - ...args(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
-  - Any additional parameters you give will be passed to the [sendInlineBotResult](https://core.telegram.org/method/messages.sendInlineBotResult)
+  - Any additional parameters you give will be passed to the [sendInlineBotResult](https://tl.liveproto.dev/#/method/messages.sendInlineBotResult)
 
 ##### <pre>Returns</pre>
 A Update , potentially with a `click` closure for click on buttons
@@ -1219,7 +1219,7 @@ Usable by :
   - Hash value used to fetch specific peer state ( usually not needed )
 
 ##### <pre>Returns</pre>
-An instance of [InputPeer](https://core.telegram.org/type/InputPeer)
+An instance of [InputPeer](https://tl.liveproto.dev/#/type/InputPeer)
 
 ##### <pre>Example</pre>
 ```php
@@ -1249,7 +1249,7 @@ Usable by :
   - Username,user ID,or peer object
 
 ##### <pre>Returns</pre>
-An instance of [User](https://core.telegram.org/constructor/user), [Chat](https://core.telegram.org/constructor/chat), or [Channel](https://core.telegram.org/constructor/channel)
+An instance of [User](https://tl.liveproto.dev/#/constructor/user), [Chat](https://tl.liveproto.dev/#/constructor/chat), or [Channel](https://tl.liveproto.dev/#/constructor/channel)
 
 ##### <pre>Example</pre>
 ```php
@@ -1271,7 +1271,7 @@ Usable by :
   - Peer to fetch full info for ( username, ID, or object )
 
 ##### <pre>Returns</pre>
-An instance of [UserFull](https://core.telegram.org/constructor/userFull) or [ChatFull](https://core.telegram.org/constructor/chatFull) or [ChannelFull](https://core.telegram.org/constructor/channelFull)
+An instance of [UserFull](https://tl.liveproto.dev/#/constructor/userFull) or [ChatFull](https://tl.liveproto.dev/#/constructor/chatFull) or [ChannelFull](https://tl.liveproto.dev/#/constructor/channelFull)
 
 ##### <pre>Example</pre>
 ```php
@@ -1343,10 +1343,10 @@ Usable by :
   - Time‐to‐live (self‑destruct) for the message, in seconds
 
 - ...arguments(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
-  - Any additional parameters you give will be passed to the [decryptedMessage](https://core.telegram.org/constructor/decryptedMessage)
+  - Any additional parameters you give will be passed to the [decryptedMessage](https://tl.liveproto.dev/#/constructor/decryptedMessage)
 
 ##### <pre>Returns</pre>
-An instance of [SentEncryptedMessage](https://core.telegram.org/type/messages.SentEncryptedMessage)
+An instance of [SentEncryptedMessage](https://tl.liveproto.dev/#/type/messages.SentEncryptedMessage)
 
 ##### <pre>Example</pre>
 ```php
@@ -1382,10 +1382,10 @@ Usable by :
   - Time in seconds before the message self‑destructs after viewing
 
 - ...arguments(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
-  - Any additional parameters you give will be passed to the [decryptedMessage](https://core.telegram.org/constructor/decryptedMessage)
+  - Any additional parameters you give will be passed to the [decryptedMessage](https://tl.liveproto.dev/#/constructor/decryptedMessage)
 
 ##### <pre>Returns</pre>
-An instance of [SentEncryptedMessage](https://core.telegram.org/type/messages.SentEncryptedMessage)
+An instance of [SentEncryptedMessage](https://tl.liveproto.dev/#/type/messages.SentEncryptedMessage)
 
 ##### <pre>Example</pre>
 ```php
@@ -1426,7 +1426,7 @@ Usable by :
   - Self‑destruct timer in seconds
 
 ##### <pre>Returns</pre>
-An instance of [SentEncryptedMessage](https://core.telegram.org/type/messages.SentEncryptedMessage)
+An instance of [SentEncryptedMessage](https://tl.liveproto.dev/#/type/messages.SentEncryptedMessage)
 
 ##### <pre>Example</pre>
 ```php
@@ -1450,7 +1450,7 @@ Usable by :
   - User to start a secret chat with ( ID, username, or object )
 
 ##### <pre>Returns</pre>
-An instance of [EncryptedChat](https://core.telegram.org/type/EncryptedChat)
+An instance of [EncryptedChat](https://tl.liveproto.dev/#/type/EncryptedChat)
 
 ##### <pre>Example</pre>
 ```php
@@ -1474,10 +1474,10 @@ Usable by :
   - Peer whose secret chat should be closed
 
 - ...arguments(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
-  - Any additional parameters you give will be passed to the [discardEncryption](https://core.telegram.org/method/messages.discardEncryption)
+  - Any additional parameters you give will be passed to the [discardEncryption](https://tl.liveproto.dev/#/method/messages.discardEncryption)
 
 ##### <pre>Returns</pre>
-An instance of [Bool](https://core.telegram.org/type/Bool)
+Bool
 
 ##### <pre>Example</pre>
 ```php
@@ -1584,7 +1584,7 @@ Usable by :
   - Optional initialization vector (IV) for encryption
 
 ##### <pre>Returns</pre>
-An instance of [inputFile](https://core.telegram.org/type/InputFile) or [InputEncryptedFile](https://core.telegram.org/type/InputEncryptedFile)
+An instance of [inputFile](https://tl.liveproto.dev/#/type/InputFile) or [InputEncryptedFile](https://tl.liveproto.dev/#/type/InputEncryptedFile)
 
 ##### <pre>Example</pre>
 ```php
@@ -1618,7 +1618,7 @@ Usable by :
   - Any additional parameters you give will be passed to the [upload_file](en/functions.md#upload_file)
 
 ##### <pre>Returns</pre>
-An array containing An instance of [InputEncryptedFile](https://core.telegram.org/type/InputEncryptedFile) and encryption details
+An array containing An instance of [InputEncryptedFile](https://tl.liveproto.dev/#/type/InputEncryptedFile) and encryption details
 
 ##### <pre>Example</pre>
 ```php
@@ -1656,7 +1656,7 @@ Usable by :
   - Optional message ID when using inline bot messages
 
 ##### <pre>Returns</pre>
-An instance of [InputUser](https://core.telegram.org/type/InputUser)
+An instance of [InputUser](https://tl.liveproto.dev/#/type/InputUser)
 
 ##### <pre>Example</pre>
 ```php
@@ -1678,7 +1678,7 @@ Usable by :
 - [x] Bots
 
 ##### <pre>Returns</pre>
-An instance of [User](https://core.telegram.org/constructor/user)
+An instance of [User](https://tl.liveproto.dev/#/constructor/user)
 
 ##### <pre>Example</pre>
 ```php

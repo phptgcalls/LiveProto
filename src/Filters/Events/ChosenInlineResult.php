@@ -37,7 +37,7 @@ final class ChosenInlineResult extends Filter {
 			$peer = $event->getPeer();
 			return $event->getClient()->messages->sendMessage($peer,$message,random_int(PHP_INT_MIN,PHP_INT_MAX),...$args);
 		};
-		$event->edit = function(mixed ...$args) use($event) : object {
+		$event->edit = function(mixed ...$args) use($event) : bool {
 			if($event->msg_id === null):
 				throw new \Exception('The inline result does not contain a msg id');
 			else:

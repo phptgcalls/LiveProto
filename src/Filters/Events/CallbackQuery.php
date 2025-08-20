@@ -59,7 +59,7 @@ final class CallbackQuery extends Filter {
 				throw new \Exception('This method is not available for this update');
 			endif;
 		};
-		$event->edit = function(? string $message = null,? object $media = null,mixed ...$args) use($event) : object {
+		$event->edit = function(? string $message = null,? object $media = null,mixed ...$args) use($event) : mixed {
 			$peer = $event->getPeer();
 			$args += ['message'=>$message,'media'=>$media];
 			if($event->class === 'updateBotCallbackQuery'or $event->class === 'updateBusinessBotCallbackQuery'):
@@ -118,7 +118,7 @@ final class CallbackQuery extends Filter {
 				throw new \Exception('This method is not available for this update');
 			endif;
 		};
-		$event->answerCallback = function(int $cache,mixed ...$args) use($event) : object {
+		$event->answerCallback = function(int $cache,mixed ...$args) use($event) : bool {
 			return $event->getClient()->messages->setBotCallbackAnswer($event->query_id,$cache,...$args);
 		};
 		if($event->class === 'updateBotCallbackQuery' or $event->class === 'updateBusinessBotCallbackQuery'):

@@ -103,11 +103,11 @@ final class Messages extends Filter {
 			$peer = $event->getPeer();
 			return $event->getClient()->messages->sendScreenshotNotification($peer,$reply_to,random_int(PHP_INT_MIN,PHP_INT_MAX));
 		};
-		$event->block = function(mixed ...$args) use($event) : object {
+		$event->block = function(mixed ...$args) use($event) : bool {
 			$peer = $event->getPeer();
 			return $event->getClient()->contacts->block($peer,...$args);
 		};
-		$event->unblock = function(mixed ...$args) use($event) : object {
+		$event->unblock = function(mixed ...$args) use($event) : bool {
 			$peer = $event->getPeer();
 			return $event->getClient()->contacts->unblock($peer,...$args);
 		};

@@ -128,7 +128,7 @@ final class Sender {
 			throw $error;
 		}
 	}
-	public function receive(Binary $request,float $timeout) : object {
+	public function receive(Binary $request,float $timeout) : mixed {
 		$deferred = new DeferredFuture();
 		$future = $deferred->getFuture();
 		$this->receiveQueue[$this->objectHash($request)] = (object) ['request'=>$request,'deferred'=>$deferred];

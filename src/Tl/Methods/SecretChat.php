@@ -100,7 +100,7 @@ trait SecretChat {
 		$this->set_secret(id : $chat->id,access_hash : $chat->access_hash,peer : $chat->participant_id,auth_key : $auth_key,layer : $this->layer(secret : true),creator : true);
 		$this->notify_layer($chat->id);
 	}
-	public function close_secret_chat(string | int | object $peer,mixed ...$arguments) : object {
+	public function close_secret_chat(string | int | object $peer,mixed ...$arguments) : bool {
 		$id = $this->remove_secret($peer);
 		return $this->messages->discardEncryption($id,...$arguments);
 	}
@@ -142,7 +142,6 @@ trait SecretChat {
 				return null;
 			elseif($decrypted->action instanceof \Tak\Liveproto\Tl\Types\Secret\DecryptedMessageActionResend):
 				$chat = $this->get_secret($message->chat_id);
-				print $decrypted->action;
 				$decrypted->action->start_seq_no -= intval($chat['creator'] === true);
 				$decrypted->action->end_seq_no -= intval($chat['creator'] === true);
 				$decrypted->action->start_seq_no >>= 1;

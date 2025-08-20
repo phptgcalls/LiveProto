@@ -20,3 +20,15 @@
 
  - FIX : Bugs
  - RELEASE : Documentation TL
+
+   # V0.0.6 UPDATED 🎉
+ - DATE : 2025-08-18
+
+  # V0.0.7 UPDATED 🎉
+ - DATE : 2025-08-19
+
+   # V0.0.8 UPDATED 🎉
+ - DATE : 2025-08-20
+
+  # V0.0.9 UPDATED 🎉
+ - DATE : 2025-08-20
