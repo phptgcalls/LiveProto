@@ -6,10 +6,6 @@ namespace Tak\Liveproto\Network\Protocols;
 
 use Tak\Liveproto\Utils\Binary;
 
-define('CRLF',chr(13).chr(10));
-
-define('LFCR',chr(10).chr(13));
-
 final class Http {
 	public function __construct(private readonly string $host,private readonly int $port){
 		$ip = inet_pton($host);

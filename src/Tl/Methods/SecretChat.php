@@ -10,6 +10,8 @@ use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Helper;
 
+use Tak\Liveproto\Utils\Security;
+
 use Tak\Liveproto\Utils\Logging;
 
 use Tak\Liveproto\Enums\RekeyState;
@@ -54,7 +56,7 @@ trait SecretChat {
 		$dhConfig = $this->getDhConfig();
 		$a = gmp_import(random_bytes(0x100));
 		$g_a = gmp_powm($dhConfig->g,$a,$dhConfig->p);
-		Helper::checkG(strval($g_a),strval($dhConfig->p),true);
+		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$result = $this->messages->requestEncryption(user_id : $user,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),g_a : gmp_export($g_a));
 		$string = Helper::getByteArray(strval($a));
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
@@ -66,7 +68,7 @@ trait SecretChat {
 		$dhConfig = $this->getDhConfig();
 		$b = gmp_import(random_bytes(0x100));
 		$g_a = gmp_import($chat->g_a);
-		Helper::checkG(strval($g_a),strval($dhConfig->p),true);
+		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$pow = gmp_powm($g_a,$b,$dhConfig->p);
 		$string = Helper::getByteArray(strval($pow));
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
@@ -74,7 +76,7 @@ trait SecretChat {
 		$writer->write(substr(sha1($auth_key,true),-8));
 		$keyfingerprint = $writer->readLong();
 		$g_b = gmp_powm($dhConfig->g,$b,$dhConfig->p);
-		Helper::checkG(strval($g_b),strval($dhConfig->p),true);
+		Security::checkG(strval($g_b),strval($dhConfig->p),true);
 		$peer = $this->inputEncryptedChat(chat_id : $chat->id,access_hash : $chat->access_hash);
 		$result = $this->messages->acceptEncryption(peer : $peer,g_b : gmp_export($g_b),key_fingerprint : $keyfingerprint);
 		$this->set_secret(id : $chat->id,access_hash : $chat->access_hash,peer : $chat->participant_id,auth_key : $auth_key,layer : $this->layer(secret : true));
@@ -85,7 +87,7 @@ trait SecretChat {
 		# encryptedChat#61f0d4c7 id:int access_hash:long date:int admin_id:long participant_id:long g_a_or_b:bytes key_fingerprint:long = EncryptedChat; #
 		$dhConfig = $this->getDhConfig();
 		$g_a_or_b = gmp_import($chat->g_a_or_b);
-		Helper::checkG(strval($g_a_or_b),strval($dhConfig->p),true);
+		Security::checkG(strval($g_a_or_b),strval($dhConfig->p),true);
 		$temp = $this->get_secret($chat->id);
 		$a = gmp_import($temp['auth_key']);
 		$pow = gmp_powm($g_a_or_b,$a,$dhConfig->p);
@@ -264,7 +266,7 @@ trait SecretChat {
 		$dhConfig = $this->getDhConfig();
 		$a = gmp_import(random_bytes(0x100));
 		$g_a = gmp_powm($dhConfig->g,$a,$dhConfig->p);
-		Helper::checkG(strval($g_a),strval($dhConfig->p),true);
+		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$e = random_int(PHP_INT_MIN,PHP_INT_MAX);
 		$chat['rekey'] = RekeyState::REQUESTED;
 		$chat['param'] = $a;
@@ -288,7 +290,7 @@ trait SecretChat {
 		$dhConfig = $this->getDhConfig();
 		$b = gmp_import(random_bytes(0x100));
 		$g_a = gmp_import($g_a);
-		Helper::checkG(strval($g_a),strval($dhConfig->p),true);
+		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$pow = gmp_powm($g_a,$b,$dhConfig->p);
 		$string = Helper::getByteArray(strval($pow));
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
@@ -301,7 +303,7 @@ trait SecretChat {
 		$chat['key_fingerprint'] = $keyfingerprint;
 		$this->set_secret(...$chat);
 		$g_b = gmp_powm($dhConfig->g,$b,$dhConfig->p);
-		Helper::checkG(strval($g_b),strval($dhConfig->p),true);
+		Security::checkG(strval($g_b),strval($dhConfig->p),true);
 		$action = $this->secret->decryptedMessageActionAcceptKey(exchange_id : $exchange_id,g_b : gmp_export($g_b),key_fingerprint : $keyfingerprint);
 		$this->send_action($chat_id,$action);
 	}
@@ -315,7 +317,7 @@ trait SecretChat {
 		Logging::log('Secret Chat','commit rekey ...',0);
 		$dhConfig = $this->getDhConfig();
 		$g_b = gmp_import($g_b);
-		Helper::checkG(strval($g_b),strval($dhConfig->p),true);
+		Security::checkG(strval($g_b),strval($dhConfig->p),true);
 		$pow = gmp_powm($g_b,$chat['param'],$dhConfig->p);
 		$string = Helper::getByteArray(strval($pow));
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);

@@ -19,21 +19,22 @@ final class Content implements ArrayAccess {
 		$this->cloned = false;
 		$this->savetime = is_null($savetime) === false ? $savetime : 1;
 		$this->lastsave = is_null($lastsave) === false ? $lastsave : microtime(true);
+		register_shutdown_function(fn() : null => $this->save(true));
 	}
 	public function setSession(Session $session) : self {
 		$this->session = $session;
 		return $this;
 	}
-	public function save() : void {
+	public function save(bool $urgent = false) : void {
 		if(isset($this->session)):
 			if($this->cloned === false):
 				$sleep = $this->savetime - (microtime(true) - $this->lastsave);
-				if($sleep <= 0):
+				if($sleep <= 0 || $urgent):
 					$this->lastsave = microtime(true);
 					$this->pending = strval(null);
 					$this->session->save();
 				elseif(empty($this->pending)):
-					$this->pending = EventLoop::unreference(EventLoop::delay($sleep,$this->save(...)));
+					$this->pending = EventLoop::unreference(EventLoop::delay($sleep,fn(string $id) : null => $this->save(true)));
 				endif;
 			endif;
 		else:
@@ -91,6 +92,9 @@ final class Content implements ArrayAccess {
 			'lastsave'=>$this->lastsave,
 			'data'=>$this->data
 		);
+	}
+	public function __wakeup() : void {
+		register_shutdown_function(fn() : null => $this->save(true));
 	}
 }
 

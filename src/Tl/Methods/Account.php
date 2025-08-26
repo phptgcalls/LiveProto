@@ -9,7 +9,7 @@ use Tak\Liveproto\Crypto\Password;
 use Tak\Liveproto\Enums\EmailPurpose;
 
 trait Account {
-	public function update_password(#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $new = null,? string $hint = null,? string $email = null) : mixed {
+	public function update_password(#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $new = null,? string $hint = null,? string $email = null) : bool {
 		$account = $this->account->getPassword();
 		$account->new_algo->salt1 .= random_bytes(32);
 		$checker = new Password();
@@ -41,12 +41,28 @@ trait Account {
 	public function send_email_code(string $email,EmailPurpose $email_purpose = EmailPurpose::LOGINSETUP) : object {
 		$purpose = $this->email_purpose($email_purpose);
 		$result = $this->account->sendVerifyEmailCode(purpose : $purpose,email : $email);
+		if($this->load->step === Authentication::NEED_EMAIL):
+			if($result instanceof \Tak\Liveproto\Tl\Types\Account\SentEmailCode):
+				$this->load->step = Authentication::NEED_EMAIL_VERIFY;
+			endif;
+		endif;
 		return $result;
 	}
 	public function verify_email(string | int $code,EmailPurpose $email_purpose = EmailPurpose::LOGINSETUP) : object {
 		$purpose = $this->email_purpose($email_purpose);
 		$verification = $this->emailVerificationCode(code : strval($code));
 		$result = $this->account->verifyEmail(purpose : $purpose,verification : $verification);
+		if($this->load->step === Authentication::NEED_EMAIL_VERIFY):
+			if($result instanceof \Tak\Liveproto\Tl\Types\Account\EmailVerifiedLogin):
+				if($result->sent_code instanceof \Tak\Liveproto\Tl\Types\Auth\SentCode):
+					$this->load->step = Authentication::NEED_CODE;
+				elseif($result->sent_code instanceof \Tak\Liveproto\Tl\Types\Auth\SentCodeSuccess):
+					$this->load->step = Authentication::LOGIN;
+				elseif($result->sent_code instanceof \Tak\Liveproto\Tl\Types\Auth\SentCodePaymentRequired):
+					$this->load->step = Authentication::NEED_CODE_PAYMENT_REQUIRED;
+				endif;
+			endif;
+		endif;
 		return $result;
 	}
 	private function email_purpose(EmailPurpose $purpose) : object {

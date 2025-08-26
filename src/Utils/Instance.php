@@ -71,8 +71,9 @@ abstract class Instance implements Stringable , JsonSerializable , ArrayAccess {
 	public function read() : string {
 		return $this->stream()->read();
 	}
-	public function write(Binary $writer) : void {
+	public function write(Binary $writer) : Binary {
 		$writer->write($this->read());
+		return $writer;
 	}
 	public function __sleep() : array {
 		return array('sdtClass');

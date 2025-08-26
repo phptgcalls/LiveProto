@@ -29,22 +29,10 @@ final class TcpTransport {
 		};
 	}
 	public function send(string $packet) : void {
-		if($this->tcpClient->connected):
-			try {
-				$this->tcpClient->write($this->protocol->encode($packet));
-			} catch(\Throwable $error){
-				throw $error;
-			}
-		endif;
+		$this->tcpClient->write($this->protocol->encode($packet));
 	}
 	public function receive() : string {
-		if($this->tcpClient->connected):
-			try {
-				return $this->protocol->decode($this->tcpClient);
-			} catch(\Throwable $error){
-				throw $error;
-			}
-		endif;
+		return $this->protocol->decode($this->tcpClient);
 	}
 	public function close() : void {
 		$this->tcpClient->close();

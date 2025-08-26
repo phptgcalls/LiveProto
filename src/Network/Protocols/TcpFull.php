@@ -4,16 +4,19 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Network\Protocols;
 
+use Tak\Liveproto\Utils\Security;
+
 use Tak\Liveproto\Utils\Binary;
 
 final class TcpFull {
-	private int $seqno = 0;
+	private int $client_seqno = 0;
+	private int $server_seqno = 0;
 
 	public function encode(string $body) : string {
 		$binary = new Binary();
 		$binary->writeInt(strlen($body) + 12);
-		$binary->writeInt($this->seqno);
-		$this->seqno++;
+		$binary->writeInt($this->client_seqno);
+		$this->client_seqno++;
 		$binary->write($body);
 		$message = $binary->read();
 		$crc = crc32($message);
@@ -22,15 +25,17 @@ final class TcpFull {
 		return $binary->read();
 	}
 	public function decode(object $tcpClient) : string {
-		$exception = new \Exception('The connection with the server is not established !');
-		$invalid = new \Exception('The response is invalid !');
+		$exception = new \RuntimeException('The connection with the server is not established !');
+		$invalid = new Security('The response is invalid !');
 		$packetBytes = $tcpClient->read(4);
 		assert(empty($packetBytes) === false,$exception);
 		$packet = unpack('V',$packetBytes)[true];
+		assert($packet > 12,$invalid);
 		$seqBytes = $tcpClient->read(4);
 		assert(empty($seqBytes) === false,$exception);
 		$seq = unpack('V',$seqBytes)[true];
-		assert($seq > 0 or $packet > 0,$invalid);
+		assert($seq === $this->server_seqno,$invalid);
+		$this->server_seqno++;
 		$body = $tcpClient->read($packet - 12);
 		assert(empty($body) === false,$exception);
 		$sum = $tcpClient->read(4);

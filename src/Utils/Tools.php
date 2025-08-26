@@ -49,8 +49,8 @@ abstract class Tools {
 		$type = match(gettype($data)){
 			'boolean' => 'BOOLEAN',
 			'object' , 'array' => 'LONGTEXT',
-			'integer' => abs($data) > 0x7fffffff ? 'BIGINT' : 'INT',
-			'string' => mb_strlen($data) > 0xffff ? 'LONGTEXT' : 'TEXT',
+			'integer' => 'BIGINT', // abs($data) > 0x7fffffff ? 'BIGINT' : 'INT' //
+			'string' => 'TEXT', // mb_strlen($data) > 0xffff ? 'LONGTEXT' : 'TEXT' //
 			default => 'VARCHAR ('.mb_strlen($data).')'
 		};
 		return $type;

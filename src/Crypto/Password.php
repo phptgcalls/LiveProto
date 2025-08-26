@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Crypto;
 
-use Tak\Liveproto\Utils\Helper;
+use Tak\Liveproto\Utils\Security;
 
 final class Password {
 	public function srp(object $request,string $password) : object {
@@ -20,10 +20,10 @@ final class Password {
 		$k_v = gmp_mod(gmp_mul($k,$v),$p);
 		$a = gmp_import(random_bytes(0x100));
 		$g_a = gmp_powm($g,$a,$p);
-		Helper::checkG(strval($g_a),$p,true);
+		Security::checkG(strval($g_a),$p,true);
 		$u = gmp_import($this->h($this->str($g_a).$this->str($request->srp_B)));
 		$g_b = gmp_mod(gmp_sub($b,$k_v),$p);
-		Helper::checkG(strval($g_b),$p,true);
+		Security::checkG(strval($g_b),$p,true);
 		$s_a = gmp_powm($g_b,gmp_add($a,gmp_mul($u,$x)),$p);
 		$k_a = $this->h($this->str($s_a));
 		$m1 = $this->h($this->xor($this->h($this->str($algo->p)),$this->h($this->str($g))).$this->h($salt1).$this->h($salt2).$this->str($g_a).$this->str($request->srp_B).$k_a);

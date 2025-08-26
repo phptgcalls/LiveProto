@@ -12,7 +12,7 @@ abstract class Aes {
 			$ivOne = substr($iv,0,0x10);
 			$ivTwo = substr($iv,0x10);
 			$ciphertext = (string) null;
-			$padding = strlen($plaintext) % 16 ? 0x10 - strlen($plaintext) % 0x10 : 0;
+			$padding = strlen($plaintext) % 0x10 ? 0x10 - (strlen($plaintext) % 0x10) : 0;
 			$plaintext = str_pad($plaintext,strlen($plaintext) + $padding,chr(0),STR_PAD_RIGHT);
 			for($i = 0,$length = strlen($plaintext); $i < $length; $i += 0x10):
 				$plain = substr($plaintext,$i,0x10);

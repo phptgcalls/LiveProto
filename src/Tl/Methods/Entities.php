@@ -6,10 +6,6 @@ namespace Tak\Liveproto\Tl\Methods;
 
 use Tak\Liveproto\Utils\StringTools;
 
-use Amp\Http\Client\Request;
-
-use Amp\Http\Client\HttpClientBuilder;
-
 use DOMDocument;
 
 use DOMNode;
@@ -243,7 +239,7 @@ trait Entities {
 			$entity = $entities[$i] = clone $object;
 			$entity->text = StringTools::substr($text,$entity->offset,$entity->length);
 			if(isset($entity->url)):
-				$entity->open = fn() => (new HttpClientBuilder())->build()->request(new Request($entity->url));
+				$entity->open = fn() : string | false => @file_get_contents($entity->url);
 			endif;
 		endforeach;
 		return $entities;

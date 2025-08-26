@@ -24,10 +24,6 @@ use League\Uri\Http;
 
 use function Amp\Socket\socketConnector;
 
-define('CRLF',chr(13).chr(10));
-
-define('LFCR',chr(10).chr(13));
-
 final class HttpSocketConnector implements SocketConnector {
 	use ForbidCloning;
 	use ForbidSerialization;

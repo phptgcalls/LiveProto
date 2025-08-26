@@ -6,15 +6,13 @@ namespace Tak\Liveproto\Tl\Methods;
 
 use Tak\Liveproto\Crypto\Aes;
 
+use Tak\Liveproto\Utils\Security;
+
 use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Errors;
 
 use Tak\Liveproto\Utils\Logging;
-
-use Amp\Http\Client\Request;
-
-use Amp\Http\Client\HttpClientBuilder;
 
 use function Amp\async;
 
@@ -43,7 +41,6 @@ trait Download {
 		}
 		Logging::log('Download','Start downloading the '.basename($path).' file ...',0);
 		if($getFile instanceof \Tak\Liveproto\Tl\Types\Upload\FileCdnRedirect):
-			# $client->disconnect();
 			$client = $this->switchDC(dcid : $getFile->dc_id,cdn : true,media : true);
 			while($size > $offset or $size <= 0):
 				$getCdnFile = $client->upload->getCdnFile(file_token : $getFile->file_token,offset : $offset,limit : $limit,timeout : 10);
@@ -61,9 +58,7 @@ trait Download {
 				$hashes = $client->upload->getCdnFileHashes(file_token : $getFile->file_token,offset : $offset);
 				foreach($hashes as $i => $value):
 					$hash = substr($bytes,$value->limit * $i,$value->limit);
-					if($value->hash !== hash('sha256',$hash,true)):
-						throw new \Exception('File validation failed !');
-					endif;
+					assert($value->hash === hash('sha256',$hash,true),new Security('File validation failed !'));
 				endforeach;
 				$offset += strlen($getCdnFile->bytes);
 				$stream->write($bytes);
@@ -109,7 +104,6 @@ trait Download {
 			endif;
 		endif;
 		$stream->close();
-		# $client->disconnect();
 		try {
 			if(empty(pathinfo($path,PATHINFO_EXTENSION))):
 				$extension = $this->getFileExtension($getFile->type);
@@ -210,24 +204,32 @@ trait Download {
 		endif;
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\WebDocument or $file instanceof \Tak\Liveproto\Tl\Types\Other\WebDocumentNoProxy or $file instanceof \Tak\Liveproto\Tl\Types\Secret\DecryptedMessageMediaWebPage or $file instanceof \Tak\Liveproto\Tl\Types\Other\InputWebDocument):
 			$url = isset($file->url) ? $file->url : throw new \InvalidArgumentException('The web document does not contain the url property !');
-			$client = new HttpClientBuilder();
-			$response = $client->build()->request(new Request($url));
-			$headers = $response->getHeaders();
-			$contentType = explode(chr(59),end($headers['content-type']))[false];
+			$mimeType = isset($file->mime_type) ? $file->mime_type : null;
+			$headers = get_headers($url,true);
+			if($headers !== false):
+				$headers = array_change_key_case($headers,CASE_LOWER);
+				if(isset($headers['content-type'])):
+					$mimeType = $headers['content-type'];
+				endif;
+			endif;
 			if(isDirectory($path)):
 				$path = $path.DIRECTORY_SEPARATOR.md5($url);
 			endif;
-			if(empty(pathinfo($path,PATHINFO_EXTENSION))):
-				$extension = $this->getFileExtension($contentType);
+			if(empty(pathinfo($path,PATHINFO_EXTENSION)) and empty($mimeType) === false):
+				$extension = $this->getFileExtension($mimeType);
 				if(empty($extension) === false):
 					$path = $path.chr(46).$extension;
 				endif;
 			endif;
-			$body = $response->getBody();
-			$stream = openFile($path,'wb');
-			$stream->write($body->buffer());
-			$stream->close();
-			return $path;
+			$buffer = @file_get_contents($url);
+			if(is_string($buffer)):
+				$stream = openFile($path,'wb');
+				$stream->write($buffer);
+				$stream->close();
+				return $path;
+			else:
+				throw new \RuntimeException('Error retrieving buffer : '.$url);
+			endif;
 		else:
 			throw new \InvalidArgumentException('Your media does not contain web document !');
 		endif;

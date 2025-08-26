@@ -23,10 +23,15 @@ trait Auth {
 					$result = $this->resend_code();
 				endif;
 				$this->load->phonecodehash = $result->phone_code_hash;
-				$this->load->step = Authentication::NEEDCODE;
+				if($result->type instanceof \Tak\Liveproto\Tl\Types\Auth\SentCodeTypeSetUpEmailRequired):
+					$this->load->step = Authentication::NEED_EMAIL;
+				else:
+					$this->load->step = Authentication::NEED_CODE;
+				endif;
 			elseif($result instanceof \Tak\Liveproto\Tl\Types\Auth\SentCodeSuccess):
-				# $this->save_authorization($result->authorization);
 				$this->load->step = Authentication::LOGIN;
+			elseif($result instanceof \Tak\Liveproto\Tl\Types\Auth\SentCodePaymentRequired):
+				$this->load->step = Authentication::NEED_CODE_PAYMENT_REQUIRED;
 			endif;
 			return $result;
 		} catch(Errors $error){
@@ -48,9 +53,14 @@ trait Auth {
 		if(is_null($code) === false):
 			try {
 				$result = $this->auth->signIn(phone_code : strval($code),email_verification : $email,phone_number : $this->load->phonenumber,phone_code_hash : $this->load->phonecodehash);
+				if($result instanceof \Tak\Liveproto\Tl\Types\Auth\Authorization):
+					$this->load->step = Authentication::LOGIN;
+				elseif($result instanceof \Tak\Liveproto\Tl\Types\Auth\AuthorizationSignUpRequired):
+					$this->load->step = Authentication::NEED_SIGNUP;
+				endif;
 			} catch(\Throwable $error){
 				if($error->getMessage() === 'SESSION_PASSWORD_NEEDED'):
-					$this->load->step = Authentication::NEEDPASSWORD;
+					$this->load->step = Authentication::NEED_PASSWORD;
 				endif;
 				throw $error;
 			}
@@ -81,12 +91,12 @@ trait Auth {
 	}
 	public function resend_code() : object {
 		$result = $this->auth->resendCode(phone_number : $this->load->phonenumber,phone_code_hash : $this->load->phonecodehash);
-		$this->load->step = Authentication::NEEDCODE;
+		$this->load->step = Authentication::NEED_CODE;
 		return $result;
 	}
 	public function cancel_code() : bool {
 		$result = $this->auth->cancelCode(phone_number : $this->load->phonenumber,phone_code_hash : $this->load->phonecodehash);
-		$this->load->step = Authentication::NEEDAUTHENTICATION;
+		$this->load->step = Authentication::NEED_AUTHENTICATION;
 		return $result;
 	}
 	public function firebase_sms(? string $safety = null,? string $push = null) : bool {
@@ -99,7 +109,7 @@ trait Auth {
 	public function log_out() : object {
 		$result = $this->auth->logOut();
 		$this->save_authorization($result);
-		$this->load->step = Authentication::NEEDAUTHENTICATION;
+		$this->load->step = Authentication::NEED_AUTHENTICATION;
 		return $result;
 	}
 	public function save_authorization(object $authorization) : void {

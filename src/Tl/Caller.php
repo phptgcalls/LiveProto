@@ -166,6 +166,16 @@ final class Properties {
 					unset($arguments['takeout']);
 				endif;
 			endif;
+			if(isset($arguments['afterid'])):
+				if(is_int($arguments['afterid'])):
+					unset($arguments['afterid']);
+					$arguments['raw'] = true;
+					$request = call_user_func(__METHOD__,$name,$arguments);
+					return $this->parent->invokeAfterMsg($this->afterid,$request,...$filtered);
+				else:
+					unset($arguments['afterid']);
+				endif;
+			endif;
 			$request = new $class($arguments);
 			if($raw):
 				return $request;

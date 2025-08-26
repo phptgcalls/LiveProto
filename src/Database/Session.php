@@ -22,14 +22,22 @@ use function Amp\File\write;
 
 use function Amp\File\getSize;
 
-use SQLite3;
-
 final class Session {
 	protected Content $content;
 	protected MySQL $mysql;
-	protected SQLite3 $sqlite;
-	private array $servers = [['ip'=>'149.154.175.50','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000a','port'=>443,'dc'=>1],['ip'=>'149.154.167.51','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000a','port'=>443,'dc'=>2],['ip'=>'149.154.175.100','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000a','port'=>443,'dc'=>3],['ip'=>'149.154.167.91','ipv6'=>'2001:67c:4e8:f004:0000:0000:0000:000a','port'=>443,'dc'=>4],['ip'=>'149.154.175.40','ipv6'=>'2001:b28:f23f:f005:0000:0000:0000:000a','port'=>443,'dc'=>5]];
-	private array $testservers = [['ip'=>'149.154.175.40','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000e','port'=>80,'dc'=>1],['ip'=>'149.154.167.40','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000e','port'=>80,'dc'=>2],['ip'=>'149.154.175.117','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000e','port'=>80,'dc'=>3]];
+	protected SQLite $sqlite;
+	private array $servers = array(
+		['ip'=>'149.154.175.50','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000a','port'=>443,'dc'=>1],
+		['ip'=>'149.154.167.51','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000a','port'=>443,'dc'=>2],
+		['ip'=>'149.154.175.100','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000a','port'=>443,'dc'=>3],
+		['ip'=>'149.154.167.91','ipv6'=>'2001:67c:4e8:f004:0000:0000:0000:000a','port'=>443,'dc'=>4],
+		['ip'=>'91.108.56.180','ipv6'=>'2001:b28:f23f:f005:0000:0000:0000:000a','port'=>443,'dc'=>5]
+	);
+	private array $testservers = array(
+		['ip'=>'149.154.175.40','ipv6'=>'2001:b28:f23d:f001:0000:0000:0000:000e','port'=>80,'dc'=>1],
+		['ip'=>'149.154.167.40','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000e','port'=>80,'dc'=>2],
+		['ip'=>'149.154.175.117','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000e','port'=>80,'dc'=>3]
+	);
 	public readonly bool $ipv6;
 	public readonly bool $testmode;
 	public readonly int $dc;
@@ -48,7 +56,6 @@ final class Session {
 		$this->username = is_string($settings->username) ? $settings->username : (string) null;
 		$this->password = is_string($settings->password) ? $settings->password : (string) null;
 		$this->database = is_string($settings->database) ? $settings->database : $this->username;
-		register_shutdown_function($this->save(...));
 	}
 	public function generate() : object {
 		if($this->dc > 0):
@@ -72,7 +79,7 @@ final class Session {
 				$server = $this->servers[array_rand($this->servers)];
 			endif;
 		endif;
-		return new Content(['id'=>Helper::generateRandomLong(),'api_id'=>0,'api_hash'=>(string) null,'dc'=>$server['dc'],'ip'=>($this->ipv6 ? $server['ipv6'] : $server['ip']),'port'=>$server['port'],'auth_key'=>new \stdClass,'salt'=>0,'sequence'=>0,'time_offset'=>0,'last_msg_id'=>0,'logout_tokens'=>[],'peers'=>new CachedPeers($this->name),'state'=>(object) array('pts'=>1,'qts'=>-1,'date'=>1,'seq'=>0),'step'=>Authentication::NEEDAUTHENTICATION],$this->savetime);
+		return new Content(['id'=>0,'api_id'=>0,'api_hash'=>(string) null,'dc'=>$server['dc'],'ip'=>($this->ipv6 ? $server['ipv6'] : $server['ip']),'port'=>$server['port'],'auth_key'=>new \stdClass,'salt'=>0,'sequence'=>0,'time_offset'=>0,'last_msg_id'=>0,'logout_tokens'=>[],'peers'=>new CachedPeers($this->name),'state'=>(object) array('pts'=>1,'qts'=>-1,'date'=>1,'seq'=>0),'step'=>Authentication::NEED_AUTHENTICATION],$this->savetime);
 	}
 	public function load() : object {
 		if(isset($this->content)):
@@ -94,7 +101,16 @@ final class Session {
 					endif;
 					break;
 				case 'sqlite':
-					$this->sqlite = new SQLite3($this->name.'.db');
+					$path = empty($this->database) ? $this->name : $this->database;
+					$this->sqlite = new SQLite($path.'.db');
+					if($this->sqlite->init($this->name)):
+						$content = $this->generate();
+					else:
+						$content = new Content(Tools::marshal($this->sqlite->get($this->name)),$this->savetime);
+					endif;
+					$this->content = $content->setSession($this);
+					$this->content->peers->init($this->sqlite);
+					$this->content->save(true);
 					break;
 				case 'mysql':
 					if(empty($this->server)):
@@ -115,7 +131,7 @@ final class Session {
 						endif;
 						$this->content = $content->setSession($this);
 						$this->content->peers->init($this->mysql);
-						$this->save();
+						$this->content->save(true);
 					endif;
 					break;
 				case 'text':
@@ -137,6 +153,8 @@ final class Session {
 					endif;
 					break;
 				case 'sqlite':
+					$data = Tools::marshal($this->content->toArray());
+					array_walk($data,fn(mixed $value,string $key) : mixed => $this->sqlite->set($this->name,$key,$value,Tools::inferType($value)));
 					break;
 				case 'mysql':
 					$data = Tools::marshal($this->content->toArray());
@@ -147,29 +165,45 @@ final class Session {
 			endswitch;
 		endif;
 	}
-	public function getStringSession() : string {
-		return base64_encode(gzdeflate(serialize($this->content)));
+	public function reset(? int $id = null) : void {
+		$this->content['id'] = is_null($id) ? Helper::generateRandomLong() : $id;
+		$this->content['sequence'] = 0;
+		$this->content['last_msg_id'] = 0;
+		gc_collect_cycles();
+	}
+	public function getServerTime() : float {
+		return floatval(microtime(true) + $this->content['time_offset']);
 	}
 	public function getNewMsgId() : int {
-		$now = microtime(true) + $this->content['time_offset'];
+		$now = $this->getServerTime();
 		$nanoseconds = intval(($now - intval($now)) * 1e9);
 		$newMsgId = (intval($now) << 32) | ($nanoseconds << 2);
 		if($this->content['last_msg_id'] >= $newMsgId) $newMsgId = $this->content['last_msg_id'] + 4;
 		$this->content['last_msg_id'] = $newMsgId;
 		return $newMsgId;
 	}
-	public function generateSequence() : int {
-		$result = $this->content['sequence'] * 2 + 1;
-		$this->content['sequence'] += 1;
-		return $result;
+	public function generateSequence(bool $contentRelated = true) : int {
+		if($contentRelated):
+			$seqno = $this->content['sequence'] * 2 + 1;
+			$this->content['sequence'] += 1;
+			return $seqno;
+		else:
+			return $this->content['sequence'] * 2;
+		endif;
 	}
 	public function updateTimeOffset(int $correctMsgId) : int {
 		$old = $this->content['time_offset'];
 		$now = time();
 		$correct = $correctMsgId >> 32;
-		$this->content['time_offset'] = $correct - $now;
-		if($this->content['time_offset'] !== $old) $this->content['last_msg_id'] = 0;
+		$new = $correct - $now;
+		$this->content['time_offset'] = $new;
+		if($new !== $old):
+			$this->content['last_msg_id'] = 0;
+		endif;
 		return $this->content['time_offset'];
+	}
+	public function getStringSession() : string {
+		return base64_encode(gzdeflate(serialize($this->content)));
 	}
 	public function __debugInfo() : array {
 		return array(
@@ -189,9 +223,6 @@ final class Session {
 	}
 	public function __sleep() : array {
 		return array('ipv6','testmode','dc','savetime','server','username','password','database');
-	}
-	public function __wakeup() : void {
-		register_shutdown_function($this->save(...));
 	}
 }
 

@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Network;
 
+use Tak\Liveproto\Utils\Security;
+
 use Tak\Liveproto\Utils\Binary;
 
 final class PlainSender {
@@ -23,16 +25,13 @@ final class PlainSender {
 		$reader = new Binary();
 		$reader->write($body);
 		$authKeyId = $reader->readLong();
+		assert($authKeyId === 0,new Security('The auth key id must be equal to zero !'));
 		$msgId = $reader->readLong();
 		$messageLength = $reader->readInt();
 		$message = $reader->read($messageLength);
 		$reader = new Binary();
 		$reader->write($message);
 		return $reader->tgreadObject();
-	}
-	public function __invoke(object $raw,mixed ...$arguments) : object {
-		$this->send($raw->request(...$arguments));
-		return $this->receive();
 	}
 }
 

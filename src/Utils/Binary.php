@@ -62,15 +62,18 @@ final class Binary implements Stringable {
 		if($undo) $this->undo();
 		$object = new \Tak\Liveproto\Tl\Types\Other\BoolFalse;
 		$request = $object->request();
-		return $this->readInt() !== $request->readInt();
+		return boolval($this->readInt() !== $request->readInt());
 	}
 	public function tgreadVector(string $type,bool $undo = false) : array {
 		if($undo) $this->undo();
 		$vector = array();
-		$vectorid = $this->readInt();
+		$vector_id = $this->readInt();
+		if($vector_id !== 0x1cb5c415):
+			throw new \RuntimeException('The constructor id of the vector is wrong : '.dechex($vector_id));
+		endif;
 		$length = $this->readInt();
 		for($i = 0;$i < $length;$i++):
-			$vector[] = match($type){
+			$vector[] = match(strtolower($type)){
 				'int' => $this->readInt(),
 				'int128' => $this->readLargeInt(128),
 				'int256' => $this->readLargeInt(256),
@@ -158,14 +161,8 @@ final class Binary implements Stringable {
 	}
 	public function tgwriteBool(bool $boolean,bool $redo = false) : self {
 		if($redo) $this->redo();
-		if($boolean):
-			$object = new \Tak\Liveproto\Tl\Types\Other\BoolTrue;
-			$request = $object->request();
-		else:
-			$object = new \Tak\Liveproto\Tl\Types\Other\BoolFalse;
-			$request = $object->request();
-		endif;
-		return $this->write($request->read());
+		$constructor = $boolean ? new \Tak\Liveproto\Tl\Types\Other\BoolTrue : new \Tak\Liveproto\Tl\Types\Other\BoolFalse;
+		return $constructor->write($this);
 	}
 	public function tgwriteVector(array $vectors,string $type,bool $redo = false) : self {
 		if($redo) $this->redo();

@@ -26,9 +26,10 @@ final class MySQL implements AbstractDB , AbstractPeers {
 		else:
 			$this->connection->query(
 				'CREATE TABLE IF NOT EXISTS '.$table.' (
-				`id` BIGINT PRIMARY KEY
+				`id` BIGINT NOT NULL DEFAULT 0
 				) default charset = utf8mb4'
 			);
+			$this->connection->prepare('INSERT IGNORE INTO '.$table.' (`id`) VALUES (:id)')->execute(['id'=>0]);
 			return true;
 		endif;
 	}
@@ -37,11 +38,7 @@ final class MySQL implements AbstractDB , AbstractPeers {
 		$lock = $mutex->acquire();
 		try {
 			if($this->exists($table,$key) === false):
-				if($key === 'id'):
-					$this->connection->prepare('INSERT IGNORE INTO '.$table.' (`id`) VALUES (:id)')->execute(['id'=>$value]);
-				else:
-					$this->connection->query('ALTER TABLE '.$table.' ADD COLUMN IF NOT EXISTS '.$key.chr(32).$type);
-				endif;
+				$this->connection->query('ALTER TABLE '.$table.' ADD COLUMN IF NOT EXISTS '.$key.chr(32).$type);
 			endif;
 			$this->connection->prepare('UPDATE '.$table.' SET '.$key.' = :new')->execute(['new'=>$value]);
 		} catch(\Throwable $error){

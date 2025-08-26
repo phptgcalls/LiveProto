@@ -28,6 +28,8 @@ use Tak\Liveproto\Handlers\Updates;
 
 use Tak\Liveproto\Enums\Authentication;
 
+use Tak\Liveproto\Enums\NonRpcResult;
+
 use Tak\Liveproto\Filters\Filter;
 
 use Revolt\EventLoop;
@@ -47,7 +49,7 @@ final class Client extends Caller implements Stringable {
 	public readonly Updates $handler;
 	protected ? object $locker;
 	public array $dcOptions;
-	public ? object $proxy;
+	public ? object $mtproxy;
 	public object $config;
 	public bool $connected = false;
 	public int $takeoutid = 0;
@@ -77,7 +79,7 @@ final class Client extends Caller implements Stringable {
 		$this->mutex = new LocalMutex;
 		$this->dcOptions = array(new \Tak\Liveproto\Tl\Types\Other\DcOption(['id'=>$this->load->dc,'ip_address'=>$this->load->ip,'port'=>$this->load->port,'client'=>$this,'expires_at'=>0]));
 		$proxy = $this->settings->getProxy();
-		$this->proxy = (is_null($proxy) === false and strtoupper($proxy['type']) === 'MTPROXY') ? $this->inputClientProxy(address : parse_url($proxy['address'],PHP_URL_HOST),port : parse_url($proxy['address'],PHP_URL_PORT)) : null;
+		$this->mtproxy = (is_null($proxy) === false and strtoupper($proxy['type']) === 'MTPROXY') ? $this->inputClientProxy(address : parse_url($proxy['address'],PHP_URL_HOST),port : parse_url($proxy['address'],PHP_URL_PORT)) : null;
 	}
 	public function connect(bool $reconnect = false,bool $reset = false) : void {
 		if($reconnect):
@@ -91,7 +93,7 @@ final class Client extends Caller implements Stringable {
 		endif;
 		$this->sender = new Sender($this->transport,$this->session,$this->handler);
 		$getConfig = $this->help->getConfig(raw : true);
-		$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,proxy : $this->proxy,query : $getConfig,params : $this->settings->params,raw : true);
+		$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,proxy : $this->mtproxy,query : $getConfig,params : $this->settings->params,raw : true);
 		if($this->settings->receiveupdates === false):
 			$query = $this->invokeWithoutUpdates(query : $query,raw : true);
 		endif;
@@ -103,15 +105,23 @@ final class Client extends Caller implements Stringable {
 	}
 	public function changeDC(int $dc_id) : void {
 		Logging::log('Client','Try change dc ...',0);
-		foreach($this->config->dc_options as $dc):
-			if($dc->ipv6 === $this->settings->ipv6 and $dc->id === $dc_id and $dc->media_only === false and $dc->cdn === false):
-				$this->removeDC($this->load->ip);
-				$this->setDC($dc->ip_address,$dc->port,$dc->id);
-				Logging::log('Client','New IP : '.$dc->ip_address,0);
-				$this->connect(reconnect : true,reset : true);
-				break;
-			endif;
-		endforeach;
+		$lock = $this->mutex->acquire();
+		try {
+			foreach($this->config->dc_options as $dc):
+				if($dc->ipv6 === $this->settings->ipv6 and $dc->id === $dc_id and $dc->media_only === false and $dc->tcpo_only === false and $dc->cdn === false):
+					# call_user_func(callback : $this->sender,raw : new \Tak\Liveproto\Tl\Functions\Other\DestroyAuthKey,identifier : NonRpcResult::DESTROY_AUTH_KEY); #
+					$this->removeDC($this->load->ip);
+					$this->setDC($dc->ip_address,$dc->port,$dc->id);
+					Logging::log('Client','New IP : '.$dc->ip_address,0);
+					$this->connect(reconnect : true,reset : true);
+					break;
+				endif;
+			endforeach;
+		} catch(\Throwable $error){
+			Logging::log('Client',$error->getMessage(),E_ERROR);
+		} finally {
+			EventLoop::queue($lock->release(...));
+		}
 	}
 	public function switchDC(? int $dc_id = null,bool $cdn = false,bool $media = false,bool $tcpo = false,bool $next = false,int $expires_in = 0) : self {
 		if($this->load->dc === $dc_id and $cdn === false and $next === false and $expires_in === 0):
@@ -145,7 +155,7 @@ final class Client extends Caller implements Stringable {
 						endif;
 						if($is_authorized === false):
 							$importAuthorization = $client->auth->importAuthorization(id : $authorization->id,bytes : $authorization->bytes,raw : true);
-							$query = $client->initConnection(api_id : $client->load->api_id,device_model : $client->settings->devicemodel,system_version : $client->settings->systemversion,app_version : $client->settings->appversion,system_lang_code : $client->settings->systemlangcode,lang_pack : $client->settings->langpack,lang_code : $client->settings->langcode,proxy : $this->proxy,query : $importAuthorization,params : $this->settings->params,raw : true);
+							$query = $client->initConnection(api_id : $client->load->api_id,device_model : $client->settings->devicemodel,system_version : $client->settings->systemversion,app_version : $client->settings->appversion,system_lang_code : $client->settings->systemlangcode,lang_pack : $client->settings->langpack,lang_code : $client->settings->langcode,proxy : $this->mtproxy,query : $importAuthorization,params : $this->settings->params,raw : true);
 							if($client->receiveupdates === false):
 								$query = $client->invokeWithoutUpdates(query : $query,raw : true);
 							endif;
@@ -164,12 +174,7 @@ final class Client extends Caller implements Stringable {
 		throw new \Exception('There is a problem in creating the client for DC id '.$dc_id.' !');
 	}
 	public function getTemp(int $dc_id,int $expires_in) : self {
-		$lock = $this->mutex->acquire();
-		try {
-			$this->dcOptions = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->expires_at === 0 || $dcOption->expires_at > time());
-		} finally {
-			EventLoop::queue($lock->release(...));
-		}
+		$this->dcOptions = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->expires_at === 0 || $dcOption->expires_at > time());
 		$availableClients = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->expires_at > 0 and $dcOption->id === $dc_id);
 		if($expires_in > 0 || empty($availableClients)):
 			Logging::log('Client','Try get temp ...',0);
@@ -177,7 +182,7 @@ final class Client extends Caller implements Stringable {
 			$reflection = new \ReflectionClass($client);
 			$temp = $reflection->getProperty('load')->getValue($client);
 			$sender = $reflection->getProperty('sender')->getValue($client);
-			$this->sender->bindTempAuthKey(sender : $sender,temp_auth_key_id : $temp->auth_key->id,expires_at : $temp->auth_key->expires_at);
+			$this->sender->bindTempAuthKey(sender : $sender,temp_auth_key_id : $temp->auth_key->id,temp_session_id : $temp->id,expires_at : $temp->auth_key->expires_at);
 			return $client;
 		else:
 			Logging::log('Client','I used the same old temp',0);
@@ -197,12 +202,7 @@ final class Client extends Caller implements Stringable {
 		return $this->load->step;
 	}
 	public function removeDC(string $ip) : void {
-		$lock = $this->mutex->acquire();
-		try {
-			$this->dcOptions = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->ip_address !== $ip);
-		} finally {
-			EventLoop::queue($lock->release(...));
-		}
+		$this->dcOptions = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->ip_address !== $ip);
 	}
 	public function layer(bool $secret = false) : int {
 		return DocBuilder::layer($secret);
@@ -235,7 +235,7 @@ final class Client extends Caller implements Stringable {
 			$this->connect();
 		endif;
 		if(Tools::isCli()):
-			if($this->load->step === Authentication::NEEDAUTHENTICATION):
+			if($this->load->step === Authentication::NEED_AUTHENTICATION):
 				$input = Tools::readLine('Please enter your phone number ( Or your bot token , you can give it from @BotFather ) : ');
 				if(str_contains($input,chr(58))):
 					$this->sign_in(token : $input);
@@ -243,7 +243,7 @@ final class Client extends Caller implements Stringable {
 					$this->send_code(phone_number : preg_replace('/[^\d]/',strval(null),$input));
 				endif;
 			endif;
-			if($this->load->step === Authentication::NEEDCODE):
+			if($this->load->step === Authentication::NEED_CODE):
 				$input = Tools::readLine('Please enter that code you received : ');
 				try {
 					$this->sign_in(code : $input);
@@ -255,7 +255,7 @@ final class Client extends Caller implements Stringable {
 					endif;
 				}
 			endif;
-			if($this->load->step === Authentication::NEEDPASSWORD):
+			if($this->load->step === Authentication::NEED_PASSWORD):
 				$input = Tools::readLine('Please enter your account password : ');
 				$this->sign_in(password : $input);
 			endif;
@@ -316,7 +316,7 @@ final class Client extends Caller implements Stringable {
 				$this->transport->close();
 			endif;
 			$this->connected = false;
-			$this->session->save();
+			$this->load->save();
 		else:
 			Logging::log('Client','You are not connected yet to disconnect !',E_ERROR);
 		endif;
@@ -325,7 +325,7 @@ final class Client extends Caller implements Stringable {
 		return array(
 			'config'=>isset($this->config) ? $this->config : new \stdClass,
 			'dcOptions'=>$this->dcOptions,
-			'proxy'=>$this->proxy,
+			'mtproxy'=>$this->mtproxy,
 			'devicemodel'=>$this->settings->devicemodel,
 			'systemversion'=>$this->settings->systemversion,
 			'appversion'=>$this->settings->appversion,
@@ -344,8 +344,7 @@ final class Client extends Caller implements Stringable {
 	private function __clone() : void {
 		$this->session = clone $this->session;
 		$this->load = $this->session->load();
-		$this->load->sequence = 0;
-		$this->load->last_msg_id = 0;
+		$this->session->reset(id : 0);
 		$dc = end($this->dcOptions);
 		$expires_in = intval($dc->expires_at - time());
 		$expires_in = intval($expires_in > 0 ? $expires_in : 0);

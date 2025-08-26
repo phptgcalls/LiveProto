@@ -6,10 +6,6 @@ namespace Tak\Liveproto\Tl\Methods;
 
 use Tak\Liveproto\Crypto\Password;
 
-use Amp\Http\Client\Request;
-
-use Amp\Http\Client\HttpClientBuilder;
-
 trait Buttons {
 	public function click_button(object $message,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null,? string $password = null,? array $contact = null,? array $geo = null,string | int | null | object $user = null) : mixed {
 		if($message instanceof \Tak\Liveproto\Tl\Types\Other\Message):
@@ -19,8 +15,7 @@ trait Buttons {
 				if($button instanceof \Tak\Liveproto\Tl\Types\Other\KeyboardButton):
 					return $this->messages->sendMessage(peer : $peer,message : $button->text,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX));
 				elseif($button instanceof \Tak\Liveproto\Tl\Types\Other\KeyboardButtonUrl):
-					$client = new HttpClientBuilder();
-					return $client->build()->request(new Request($button->url));
+					return @file_get_contents($button->url);
 				elseif($button instanceof \Tak\Liveproto\Tl\Types\Other\KeyboardButtonCallback):
 					if($button->requires_password):
 						$password = is_null($password) ? (isset($this->load->password) ? $this->load->password : null) : $password;
@@ -90,12 +85,12 @@ trait Buttons {
 			throw new \InvalidArgumentException('The message is invalid !');
 		endif;
 	}
-	public function get_button(object $replymarkup,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null) : object {
+	public function get_button(object $reply_markup,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null) : object {
 		$index = (is_null($i) === false and is_null($j)) ? $i : null;
 		$x = 0;
 		$y = 0;
-		if($replymarkup instanceof \Tak\Liveproto\Tl\Types\Other\ReplyKeyboardMarkup or $replymarkup instanceof \Tak\Liveproto\Tl\Types\Other\ReplyInlineMarkup):
-			foreach($replymarkup->rows as $row):
+		if($reply_markup instanceof \Tak\Liveproto\Tl\Types\Other\ReplyKeyboardMarkup or $reply_markup instanceof \Tak\Liveproto\Tl\Types\Other\ReplyInlineMarkup):
+			foreach($reply_markup->rows as $row):
 				foreach($row->buttons as $button):
 					if(is_null($index) === false and $index === ($x + $y)):
 						return $button;
