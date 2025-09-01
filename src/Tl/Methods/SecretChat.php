@@ -6,11 +6,11 @@ namespace Tak\Liveproto\Tl\Methods;
 
 use Tak\Liveproto\Crypto\Aes;
 
+use Tak\Liveproto\Errors\Security;
+
 use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Helper;
-
-use Tak\Liveproto\Utils\Security;
 
 use Tak\Liveproto\Utils\Logging;
 
@@ -58,7 +58,7 @@ trait SecretChat {
 		$g_a = gmp_powm($dhConfig->g,$a,$dhConfig->p);
 		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$result = $this->messages->requestEncryption(user_id : $user,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),g_a : gmp_export($g_a));
-		$string = Helper::getByteArray(strval($a));
+		$string = gmp_export($a);
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
 		$this->set_secret(id : $result->id,access_hash : (isset($result->access_hash) ? $result->access_hash : 0),peer : $result->participant_id,auth_key : $auth_key,layer : $this->layer(secret : true),temp : true);
 		return $result;
@@ -70,7 +70,7 @@ trait SecretChat {
 		$g_a = gmp_import($chat->g_a);
 		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$pow = gmp_powm($g_a,$b,$dhConfig->p);
-		$string = Helper::getByteArray(strval($pow));
+		$string = gmp_export($pow);
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
 		$writer = new Binary();
 		$writer->write(substr(sha1($auth_key,true),-8));
@@ -91,7 +91,7 @@ trait SecretChat {
 		$temp = $this->get_secret($chat->id);
 		$a = gmp_import($temp['auth_key']);
 		$pow = gmp_powm($g_a_or_b,$a,$dhConfig->p);
-		$string = Helper::getByteArray(strval($pow));
+		$string = gmp_export($pow);
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
 		$writer = new Binary();
 		$writer->write(substr(sha1($auth_key,true),-8));
@@ -223,7 +223,7 @@ trait SecretChat {
 		endif;
 		$decryptedReader = new Binary();
 		$decryptedReader->write($message);
-		$decrypted = $decryptedReader->tgreadObject();
+		$decrypted = $decryptedReader->readObject();
 		return $this->handle_decrypted_message($decrypted,$update->message);
 	}
 	public function encrypt_secret_message(int $chat_id,object $message) : string {
@@ -292,7 +292,7 @@ trait SecretChat {
 		$g_a = gmp_import($g_a);
 		Security::checkG(strval($g_a),strval($dhConfig->p),true);
 		$pow = gmp_powm($g_a,$b,$dhConfig->p);
-		$string = Helper::getByteArray(strval($pow));
+		$string = gmp_export($pow);
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
 		$writer = new Binary();
 		$writer->write(substr(sha1($auth_key,true),-8));
@@ -319,7 +319,7 @@ trait SecretChat {
 		$g_b = gmp_import($g_b);
 		Security::checkG(strval($g_b),strval($dhConfig->p),true);
 		$pow = gmp_powm($g_b,$chat['param'],$dhConfig->p);
-		$string = Helper::getByteArray(strval($pow));
+		$string = gmp_export($pow);
 		$auth_key = str_pad($string,0x100,chr(0),STR_PAD_LEFT);
 		$writer = new Binary();
 		$writer->write(substr(sha1($auth_key,true),-8));

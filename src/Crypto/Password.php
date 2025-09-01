@@ -4,13 +4,14 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Crypto;
 
-use Tak\Liveproto\Utils\Security;
+use Tak\Liveproto\Errors\Security;
 
 final class Password {
 	public function srp(object $request,string $password) : object {
 		$algo = $request->current_algo;
 		$g = $algo->g;
 		$p = gmp_import($algo->p);
+		Security::checkGoodPrime($p,$g);
 		$salt1 = $algo->salt1;
 		$salt2 = $algo->salt2;
 		$b = gmp_import($request->srp_B);

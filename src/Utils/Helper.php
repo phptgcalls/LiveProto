@@ -4,7 +4,20 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Utils;
 
+use Tak\Liveproto\Enums\Endianness;
+
 abstract class Helper {
+	static public function unpack(string $format,string $string,int $offset = 0,Endianness $byteorder = Endianness::LITTLE) : mixed {
+		$un = unpack($format,$string,$offset);
+		$result = is_array($un) ? $un[true] : $un;
+		$type = gettype($result);
+		$result = ($byteorder->isLittle() ? $result : strrev(strval($result)));
+		settype($result,$type);
+		return $result;
+	}
+	static public function pack(string $format,mixed $value,Endianness $byteorder = Endianness::LITTLE) : string {
+		return pack($format,$byteorder->isLittle() ? $value : strrev(strval($value)));
+	}
 	static public function generateRandomLong() : int {
 		$long = random_int(PHP_INT_MIN,PHP_INT_MAX);
 		return $long === 0 ? call_user_func(__METHOD__) : $long;
@@ -15,21 +28,6 @@ abstract class Helper {
 	}
 	static public function generateRandomString(int $length = 0x10) : string {
 		return substr(str_shuffle(implode([...range('A','Z'),...range('a','z'),...range(0,9)])),-abs($length));
-	}
-	static public function getByteArray(object | string | int $integer) : string {
-		if(is_object($integer)):
-			return gmp_export(strval($integer));
-		elseif(is_string($integer) || is_int($integer)):
-			return gmp_export(gmp_init($integer,0xa)); // base‑10 //
-		endif;
-		/*
-		Why two different export ? because... gmp_export('010') !== gmp_export(gmp_init('010',0xa));
-		elseif(is_int($integer)):
-			$hex = dechex($integer);
-			$dec = (strlen($hex) % 0x2 == 0x0) ? $hex : strval(0x0).$hex;
-			return pack('C*',...array_map('hexdec',str_split($dec,0x2)));
-		endif;
-		*/
 	}
 	/* V2 : https://core.telegram.org/mtproto/description#defining-aes-key-and-initialization-vector */
 	static public function keyCalculate(string $authKey,string $msgKey,bool $client) : array {

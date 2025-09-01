@@ -6,6 +6,10 @@ namespace Tak\Liveproto\Network\Protocols;
 
 use Tak\Liveproto\Network\TcpClient;
 
+use Tak\Liveproto\Errors\TransportError;
+
+use Tak\Liveproto\Utils\Helper;
+
 use Tak\Liveproto\Utils\Binary;
 
 final class TcpIntermediate {
@@ -19,12 +23,16 @@ final class TcpIntermediate {
 		return $binary->read();
 	}
 	public function decode(object $tcpClient) : string {
-		$exception = new \Exception('The connection with the server is not established !');
+		$exception = new \RuntimeException('The connection with the server is not established !');
 		$lengthBytes = $tcpClient->read(4);
 		assert(empty($lengthBytes) === false,$exception);
-		$length = unpack('V',$lengthBytes)[true];
+		$length = Helper::unpack('V',$lengthBytes);
 		$body = $tcpClient->read($length);
 		assert(empty($body) === false,$exception);
+		if($length === 0x4):
+			$code = Helper::unpack('l',$body);
+			assert($code >= 0,new TransportError(self::class,$code));
+		endif;
 		return $body;
 	}
 }

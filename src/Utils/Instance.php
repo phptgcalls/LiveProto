@@ -118,7 +118,7 @@ abstract class Instance implements Stringable , JsonSerializable , ArrayAccess {
 	public function clone(string | object $object,bool $deep = false) : object {
 		$cloned = new $object($this->sdtClass);
 		if($deep and $cloned instanceof self):
-			$cloned = $cloned->stream(true)->tgreadObject();
+			$cloned = $cloned->stream(true)->readObject();
 		endif;
 		return $cloned;
 	}

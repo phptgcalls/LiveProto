@@ -14,9 +14,9 @@ use Tak\Liveproto\Crypto\Aes;
 
 use Tak\Liveproto\Crypto\AuthKey;
 
-use Tak\Liveproto\Utils\Helper;
+use Tak\Liveproto\Errors\Security;
 
-use Tak\Liveproto\Utils\Security;
+use Tak\Liveproto\Utils\Helper;
 
 use Tak\Liveproto\Utils\Binary;
 
@@ -38,9 +38,9 @@ final class Connect {
 		list($p,$q) = Factorizator::factorize($pq);
 		Logging::log('Factorizator','P = '.$p.' & Q = '.$q,0);
 		$pqInnerParams = array(
-			'pq'=>Helper::getByteArray($pq),
-			'p'=>Helper::getByteArray(min($p,$q)),
-			'q'=>Helper::getByteArray(max($p,$q)),
+			'pq'=>gmp_export($pq),
+			'p'=>gmp_export(min($p,$q)),
+			'q'=>gmp_export(max($p,$q)),
 			'nonce'=>$nonce,
 			'server_nonce'=>$serverNonce,
 			'new_nonce'=>$newNonce
@@ -72,7 +72,7 @@ final class Connect {
 		if(is_null($cipher)):
 			throw new \RuntimeException('Fingerprint not found !');
 		endif;
-		$reqDH = $this(method : 'reqDHParams',nonce : $nonce,server_nonce : $serverNonce,p : Helper::getByteArray(min($p,$q)),q : Helper::getByteArray(max($p,$q)),public_key_fingerprint : $fingerprint,encrypted_data : $cipher);
+		$reqDH = $this(method : 'reqDHParams',nonce : $nonce,server_nonce : $serverNonce,p : gmp_export(min($p,$q)),q : gmp_export(max($p,$q)),public_key_fingerprint : $fingerprint,encrypted_data : $cipher);
 		assert($reqDH->nonce === $nonce,new Security('Nonce from server is not equal to nonce !'));
 		assert($reqDH->server_nonce === $serverNonce,new Security('Server nonce from server is not equal to server nonce !'));
 		if($reqDH instanceof \Tak\Liveproto\Tl\Types\Other\ServerDHParamsFail):
@@ -86,7 +86,7 @@ final class Connect {
 		$dhInner->write($decrypted);
 		$answerHash = $dhInner->read(20); // the first 20 bytes of answer_with_hash must be equal to SHA1 //
 		// server_DH_inner_data#b5890dba nonce:int128 server_nonce:int128 g:int dh_prime:string g_a:string server_time:int = Server_DH_inner_data; //
-		$serverDHInnerData = $dhInner->tgreadObject();
+		$serverDHInnerData = $dhInner->readObject();
 		$randomBytes = strlen($dhInner->read());
 		$answer = $randomBytes > 0 ? substr($decrypted,20,-abs($randomBytes)) : substr($decrypted,20);
 		assert(sha1($answer,true) === $answerHash,new Security('The hashed answer is not equal to the hash received from the server !'));
@@ -94,6 +94,7 @@ final class Connect {
 		assert($serverDHInnerData->server_nonce === $serverNonce,new Security('Server nonce from server is not equal to server nonce !'));
 		$g = $serverDHInnerData->g;
 		$dhPrime = strval(gmp_import($serverDHInnerData->dh_prime));
+		Security::checkGoodPrime($dhPrime,$g);
 		$g_a = gmp_import($serverDHInnerData->g_a);
 		$serverTime = $serverDHInnerData->server_time;
 		$timeOffset = $serverTime - time();
@@ -104,7 +105,7 @@ final class Connect {
 			Security::checkG(strval($g),$dhPrime);
 			Security::checkG(strval($g_a),$dhPrime,true);
 			Security::checkG(strval($g_b),$dhPrime,true);
-			$clientDHData = (new \Tak\Liveproto\Tl\Types\Other\ClientDHInnerData)(nonce : $nonce,server_nonce : $serverNonce,retry_id : $retryId,g_b : Helper::getByteArray($g_b));
+			$clientDHData = (new \Tak\Liveproto\Tl\Types\Other\ClientDHInnerData)(nonce : $nonce,server_nonce : $serverNonce,retry_id : $retryId,g_b : gmp_export($g_b));
 			$data = $clientDHData->read();
 			$clientDhEncrypted = Aes::encrypt(sha1($data,true).$data,$key,$iv);
 			Logging::log('Aes','Encrypt ige length = '.strlen($clientDhEncrypted),0);

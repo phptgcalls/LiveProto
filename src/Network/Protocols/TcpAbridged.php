@@ -6,6 +6,10 @@ namespace Tak\Liveproto\Network\Protocols;
 
 use Tak\Liveproto\Network\TcpClient;
 
+use Tak\Liveproto\Errors\TransportError;
+
+use Tak\Liveproto\Utils\Helper;
+
 final class TcpAbridged {
 	public function __construct(? TcpClient $tcpClient = null){
 		$tcpClient?->write(chr(239));
@@ -15,21 +19,26 @@ final class TcpAbridged {
 		if($length < 0x7f):
 			$message = chr($length);
 		else:
-			$message = chr(0x7f).substr(pack('V',$length),0,3);
+			$message = chr(0x7f).substr(Helper::pack('V',$length),0,3);
 		endif;
 		return $message.$body;
 	}
 	public function decode(object $tcpClient) : string {
-		$exception = new \Exception('The connection with the server is not established !');
+		$exception = new \RuntimeException('The connection with the server is not established !');
 		$lengthByte = $tcpClient->read(1);
 		assert(empty($lengthByte) === false,$exception);
 		$length = ord($lengthByte);
 		if($length >= 0x7f):
 			$lengthBytes = strval($tcpClient->read(3).chr(0));
-			$length = unpack('V',$lengthBytes)[true];
+			$length = Helper::unpack('V',$lengthBytes);
 		endif;
-		$body = $tcpClient->read($length << 2);
+		$length = $length << 2;
+		$body = $tcpClient->read($length);
 		assert(empty($body) === false,$exception);
+		if($length === 0x4):
+			$code = Helper::unpack('l',$body);
+			assert($code >= 0,new TransportError($code));
+		endif;
 		return $body;
 	}
 }

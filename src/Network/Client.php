@@ -92,6 +92,7 @@ final class Client extends Caller implements Stringable {
 			list($this->load->auth_key,$this->load->time_offset,$this->load->salt) = $connect->authentication($this->load->dc,$this->session->testmode);
 		endif;
 		$this->sender = new Sender($this->transport,$this->session,$this->handler);
+		# $this->sender->destroy($this->load->id); #
 		$getConfig = $this->help->getConfig(raw : true);
 		$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,proxy : $this->mtproxy,query : $getConfig,params : $this->settings->params,raw : true);
 		if($this->settings->receiveupdates === false):
@@ -261,6 +262,10 @@ final class Client extends Caller implements Stringable {
 			endif;
 			if($this->load->step === Authentication::LOGIN):
 				Logging::echo('Your bot is now running...');
+			else:
+				$this->stop();
+				Logging::echo('Cli login does not support the stage your account is logged into !');
+				exit();
 			endif;
 		else:
 			include(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'login.php');
@@ -277,7 +282,7 @@ final class Client extends Caller implements Stringable {
 		if($this->settings->takeout):
 			$this->takeoutid = $this->account->initTakeoutSession(...$this->settings->takeout)->id;
 		endif;
-		$this->handler->state();
+		$this->handler->state($this->is_bot());
 		gc_collect_cycles();
 		EventLoop::run();
 	}
@@ -344,7 +349,6 @@ final class Client extends Caller implements Stringable {
 	private function __clone() : void {
 		$this->session = clone $this->session;
 		$this->load = $this->session->load();
-		$this->session->reset(id : 0);
 		$dc = end($this->dcOptions);
 		$expires_in = intval($dc->expires_at - time());
 		$expires_in = intval($expires_in > 0 ? $expires_in : 0);

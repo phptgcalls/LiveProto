@@ -27,25 +27,22 @@ final class Binary implements Stringable {
 		$this->previouswrite = array();
 	}
 	public function readByte() : mixed {
-		return unpack('C',$this->read(1))[true];
+		return Helper::unpack('C',$this->read(1));
 	}
 	public function readInt() : mixed {
-		return unpack('V',$this->read(4))[true];
+		return Helper::unpack('V',$this->read(4));
 	}
 	public function readLong() : mixed {
-		return unpack('P',$this->read(8))[true];
-	}
-	public function readFloat() : mixed {
-		return unpack('f',$this->read(4))[true];
+		return Helper::unpack('P',$this->read(8));
 	}
 	public function readDouble() : mixed {
-		return unpack('d',$this->read(8))[true];
+		return Helper::unpack('e',$this->read(8));
 	}
 	public function readLargeInt(int $bits = 0x40) : mixed {
 		$bytes = intdiv($bits,8);
 		return strval(gmp_import($this->read($bytes),$bytes));
 	}
-	public function tgreadBytes() : string {
+	public function readBytes() : string {
 		$firstByte = $this->readByte();
 		if($firstByte == 0xfe):
 			$length = $this->readByte() | ($this->readByte() << 8) | ($this->readByte() << 16);
@@ -55,16 +52,16 @@ final class Binary implements Stringable {
 			$padding = ($length + 1) % 4;
 		endif;
 		$data = $this->read($length);
-		if($padding > 0) $this->read(4 - $padding);
+		$this->read($padding > 0 ? 0x4 - $padding : 0);
 		return $data;
 	}
-	public function tgreadBool(bool $undo = false) : bool {
+	public function readBool(bool $undo = false) : bool {
 		if($undo) $this->undo();
 		$object = new \Tak\Liveproto\Tl\Types\Other\BoolFalse;
 		$request = $object->request();
 		return boolval($this->readInt() !== $request->readInt());
 	}
-	public function tgreadVector(string $type,bool $undo = false) : array {
+	public function readVector(string $type,bool $undo = false) : array {
 		if($undo) $this->undo();
 		$vector = array();
 		$vector_id = $this->readInt();
@@ -80,20 +77,20 @@ final class Binary implements Stringable {
 				'int512' => $this->readLargeInt(512),
 				'long' => $this->readLong(),
 				'double' => $this->readDouble(),
-				'string' => $this->tgreadBytes(),
-				'bytes' => $this->tgreadBytes(),
-				'bool' => $this->tgreadBool(),
-				default => $this->tgreadObject()
+				'string' => $this->readBytes(),
+				'bytes' => $this->readBytes(),
+				'bool' => $this->readBool(),
+				default => $this->readObject()
 			};
 		endfor;
 		return $vector;
 	}
-	public function tgreadObject(bool $undo = false) : object {
+	public function readObject(bool $undo = false) : object {
 		if($undo) $this->undo();
 		$constructorId = $this->readInt();
 		$response = match(intval($constructorId)){
-			0xbc799737 , 0x997275b5 , 0x3fedd339 => (object) ['bool'=>$this->tgreadBool(...)],
-			0x1cb5c415 => (object) ['vector'=>$this->tgreadVector(...)],
+			0xbc799737 , 0x997275b5 , 0x3fedd339 => (object) ['bool'=>$this->readBool(...)],
+			0x1cb5c415 => (object) ['vector'=>$this->readVector(...)],
 			default => All::getConstructor($constructorId)->response($this)
 		};
 		return $response;
@@ -123,48 +120,42 @@ final class Binary implements Stringable {
 		return $this->position;
 	}
 	public function writeByte(mixed $value) : self {
-		return $this->write(pack('C',$value));
+		return $this->write(Helper::pack('C',$value));
 	}
 	public function writeInt(mixed $value) : self {
-		return $this->write(pack('V',$value));
+		return $this->write(Helper::pack('V',$value));
 	}
 	public function writeLong(mixed $value) : self {
-		return $this->write(pack('P',$value));
-	}
-	public function writeFloat(mixed $value) : self {
-		return $this->write(pack('f',$value));
+		return $this->write(Helper::pack('P',$value));
 	}
 	public function writeDouble(mixed $value) : self {
-		return $this->write(pack('d',$value));
+		return $this->write(Helper::pack('e',$value));
 	}
 	public function writeLargeInt(mixed $value,int $bits = 0x40) : self {
 		$bytes = intdiv($bits,8);
 		return $this->write(gmp_export($value,$bytes));
 	}
-	public function tgwriteBytes(string $data) : self {
+	public function writeBytes(string $data) : self {
 		$length = strlen($data);
 		if($length < 0xfe):
-			$padding = ($length + 1) % 4;
-			if($padding != 0) $padding = (4 - $padding);
-			$this->write(pack('C*',$length));
-			$this->write($data);
+			$padding = ($length + 1) % 0x4;
+			$this->writeByte($length);
 		else:
-			$padding = $length % 4;
-			if($padding != 0) $padding = 4 - $padding;
-			$this->write(pack('C*',0xfe));
-			$this->write(pack('C*',$length % 0x100));
-			$this->write(pack('C*',($length >> 8) % 0x100));
-			$this->write(pack('C*',($length >> 16) % 0x100));
-			$this->write($data);
+			$padding = $length % 0x4;
+			$this->writeByte(0xfe);
+			$this->writeByte(($length >> 0) % 0x100);
+			$this->writeByte(($length >> 8) % 0x100);
+			$this->writeByte(($length >> 16) % 0x100);
 		endif;
-		return $this->write(str_repeat(chr(0),$padding));
+		$this->write($data);
+		return $this->write(str_repeat(chr(0),$padding > 0 ? 0x4 - $padding : 0));
 	}
-	public function tgwriteBool(bool $boolean,bool $redo = false) : self {
+	public function writeBool(bool $boolean,bool $redo = false) : self {
 		if($redo) $this->redo();
 		$constructor = $boolean ? new \Tak\Liveproto\Tl\Types\Other\BoolTrue : new \Tak\Liveproto\Tl\Types\Other\BoolFalse;
 		return $constructor->write($this);
 	}
-	public function tgwriteVector(array $vectors,string $type,bool $redo = false) : self {
+	public function writeVector(array $vectors,string $type,bool $redo = false) : self {
 		if($redo) $this->redo();
 		$this->writeInt(0x1cb5c415);
 		$this->writeInt(count($vectors));
@@ -176,13 +167,17 @@ final class Binary implements Stringable {
 				'int512' => $this->writeLargeInt($vector,512),
 				'long' => $this->writeLong($vector),
 				'double' => $this->writeDouble($vector),
-				'string' => $this->tgwriteBytes($vector),
-				'bytes' => $this->tgwriteBytes($vector),
-				'bool' => $this->tgwriteBool($vector),
-				default => $this->write($vector->read())
+				'string' => $this->writeBytes($vector),
+				'bytes' => $this->writeBytes($vector),
+				'bool' => $this->writeBool($vector),
+				default => $this->writeObject($vector)
 			};
 		endforeach;
 		return $this;
+	}
+	public function writeObject(object $object,bool $redo = false) : self {
+		if($redo) $this->redo();
+		return $this->write($object->read());
 	}
 	public function write(string $data) : self {
 		$this->data .= $data;

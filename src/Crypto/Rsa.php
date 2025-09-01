@@ -6,8 +6,6 @@ namespace Tak\Liveproto\Crypto;
 
 use Tak\Liveproto\Utils\Binary;
 
-use Tak\Liveproto\Utils\Helper;
-
 final class Rsa {
 	private const RSAKEYS = [
 													'-----BEGIN RSA PUBLIC KEY-----'.
@@ -124,7 +122,7 @@ final class Rsa {
 		$bytes = $writer->read();
 		$number = gmp_import($bytes);
 		$pow = gmp_powm($number,$exponent,$modulus);
-		$string = Helper::getByteArray(strval($pow));
+		$string = gmp_export($pow);
 		return str_pad($string,0x100,chr(0),STR_PAD_LEFT);
 	}
 	static private function loadRsa(string $publickey) : array {
@@ -133,8 +131,8 @@ final class Rsa {
 		$modulus = $reflection->getProperty('modulus')->getValue($rsa);
 		$exponent = $reflection->getProperty('exponent')->getValue($rsa);
 		$fingerprint = new Binary();
-		$fingerprint->tgwriteBytes(Helper::getByteArray($modulus));
-		$fingerprint->tgwriteBytes(Helper::getByteArray($exponent));
+		$fingerprint->writeBytes($modulus->toBytes());
+		$fingerprint->writeBytes($exponent->toBytes());
 		$fingerprint->write(substr(sha1($fingerprint->read(),true),-8));
 		return array($fingerprint->readLong(),strval($modulus),strval($exponent));
 	}

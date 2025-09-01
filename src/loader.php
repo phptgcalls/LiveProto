@@ -10,6 +10,6 @@ class_alias(Tak\Liveproto\Network\Client::class,Tak\Liveproto\API::class);
 
 class_alias(Tak\Liveproto\Filters\Filter::class,Tak\Liveproto\Handler::class);
 
-class_alias(Tak\Liveproto\Utils\Errors::class,Tak\Liveproto\RPCError::class);
+class_alias(Tak\Liveproto\Errors\RpcError::class,Tak\Liveproto\Errors::class);
 
 ?>

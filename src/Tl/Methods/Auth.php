@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Tl\Methods;
 
-use Tak\Liveproto\Utils\Tools;
+use Tak\Liveproto\Errors\RpcError;
 
-use Tak\Liveproto\Utils\Errors;
+use Tak\Liveproto\Utils\Tools;
 
 use Tak\Liveproto\Crypto\Password;
 
@@ -34,7 +34,7 @@ trait Auth {
 				$this->load->step = Authentication::NEED_CODE_PAYMENT_REQUIRED;
 			endif;
 			return $result;
-		} catch(Errors $error){
+		} catch(RpcError $error){
 			if($error->getCode() == 303):
 				$this->changeDC($error->getValue());
 				return $this->send_code($phone_number,...$settings);

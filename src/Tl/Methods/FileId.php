@@ -33,8 +33,8 @@ trait FileId {
 		$reader->write($file);
 		$type = $reader->readInt();
 		$dc = $reader->readInt();
-		$fileReference = ($type & self::FILE_REFERENCE_FLAG ? $reader->tgreadBytes() : null);
-		$url = ($type & self::WEB_LOCATION_FLAG ? $reader->tgreadBytes() : null);
+		$fileReference = ($type & self::FILE_REFERENCE_FLAG ? $reader->readBytes() : null);
+		$url = ($type & self::WEB_LOCATION_FLAG ? $reader->readBytes() : null);
 		$type &= ~ self::FILE_REFERENCE_FLAG;
 		$type &= ~ self::WEB_LOCATION_FLAG;
 		if($type < 0 or $type >= FileIdType::SIZE->toId()):
@@ -176,15 +176,15 @@ trait FileId {
 		$writer->writeInt($type);
 		$writer->writeInt($dc_id);
 		if(isset($input_location->file_reference)):
-			$writer->tgwriteBytes($input_location->file_reference);
+			$writer->writeBytes($input_location->file_reference);
 		endif;
 		if(isset($input_location->url)):
-			$writer->tgwriteBytes($input_location->url);
+			$writer->writeBytes($input_location->url);
 			$writer->writeLong(0);
 			if($version === 4):
-				$writer->write(chr($sub_version));
+				$writer->writeByte($sub_version);
 			endif;
-			$writer->write(chr($version));
+			$writer->writeByte($version);
 			$file = $writer->read();
 			return Tools::base64_url_encode(Rle::encode($file));
 		endif;
@@ -238,9 +238,9 @@ trait FileId {
 				throw new \InvalidArgumentException('The input location '.$input_location->getClass().' is not valid');
 		endswitch;
 		if($version >= 4):
-			$writer->write(chr($sub_version));
+			$writer->writeByte($sub_version);
 		endif;
-		$writer->write(chr($version));
+		$writer->writeByte($version);
 		$file = $writer->read();
 		return Tools::base64_url_encode(Rle::encode($file));
 	}

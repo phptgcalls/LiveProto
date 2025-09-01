@@ -203,7 +203,9 @@ final class Session {
 		return $this->content['time_offset'];
 	}
 	public function getStringSession() : string {
-		return base64_encode(gzdeflate(serialize($this->content)));
+		$session = clone $this;
+		$content = $session->load();
+		return base64_encode(gzdeflate(serialize($content)));
 	}
 	public function __debugInfo() : array {
 		return array(
@@ -220,6 +222,7 @@ final class Session {
 	}
 	public function __clone() : void {
 		$this->content = clone $this->content;
+		$this->reset(id : 0);
 	}
 	public function __sleep() : array {
 		return array('ipv6','testmode','dc','savetime','server','username','password','database');

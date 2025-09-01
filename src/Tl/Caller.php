@@ -30,7 +30,7 @@ use Tak\Liveproto\Tl\Methods\Users;
 
 use Tak\Liveproto\Tl\Methods\Utilities;
 
-use Tak\Liveproto\Utils\Errors;
+use Tak\Liveproto\Errors\RpcError;
 
 use function Amp\async;
 
@@ -184,7 +184,7 @@ final class Properties {
 				$this->sender->send($binary);
 				try {
 					$result = $response ? $this->sender->receive($binary,$timeout) : new \stdClass;
-				} catch(Errors $error){
+				} catch(RpcError $error){
 					$floodmax = max($this->settings->floodsleepthreshold,$floodwaitlimit);
 					if($error->getCode() == 420 and $floodmax >= $error->getValue()):
 						delay($error->getValue());

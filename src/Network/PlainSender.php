@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Network;
 
-use Tak\Liveproto\Utils\Security;
+use Tak\Liveproto\Errors\Security;
 
 use Tak\Liveproto\Utils\Binary;
 
@@ -31,7 +31,7 @@ final class PlainSender {
 		$message = $reader->read($messageLength);
 		$reader = new Binary();
 		$reader->write($message);
-		return $reader->tgreadObject();
+		return $reader->readObject();
 	}
 }
 

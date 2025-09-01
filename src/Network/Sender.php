@@ -6,11 +6,11 @@ namespace Tak\Liveproto\Network;
 
 use Tak\Liveproto\Crypto\Aes;
 
+use Tak\Liveproto\Errors\RpcError;
+
 use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Helper;
-
-use Tak\Liveproto\Utils\Errors;
 
 use Tak\Liveproto\Utils\Logging;
 
@@ -42,11 +42,8 @@ final class Sender {
 
 	public function __construct(protected object $transport,private readonly object $session,private object $handler){
 		$this->load = $session->load();
-		$session_id = $this->load->id;
-		$session->reset();
 		$this->receiveLoop = strval(null);
 		$this->receiveLoop = EventLoop::defer($this->receivePacket(...));
-		$this->destroy($session_id);
 		EventLoop::setErrorHandler($this->errors(...));
 	}
 	public function objectHash(object $class) : string {
@@ -125,7 +122,7 @@ final class Sender {
 				Logging::log('Bind Temp','Expires at : '.strval($expires_at).' , EncryptedMessage ID : '.$message_id,0);
 				$sender->sendPacket(request : $binary,messageId : $message_id);
 				return $sender->receive(request : $binary,timeout : 10);
-			} catch(Errors $error){
+			} catch(RpcError $error){
 				$code = $error->getCode();
 			} finally {
 				$try--;
@@ -280,7 +277,7 @@ final class Sender {
 			return;
 		# gzip_packed#3072cfa1 packed_data:string = Object; #
 		elseif($constructorId == 0x3072cfa1):
-			$packed_data = $reader->tgreadBytes();
+			$packed_data = $reader->readBytes();
 			$unpacked = gzdecode($packed_data);
 			$reader = new Binary();
 			$reader->write($unpacked);
@@ -288,7 +285,7 @@ final class Sender {
 			return;
 		# msgs_ack#62d6b459 msg_ids:Vector<long> = MsgsAck; #
 		elseif($constructorId == 0x62d6b459):
-			$msg_ids = $reader->tgreadVector('long');
+			$msg_ids = $reader->readVector('long');
 			Logging::log('Msgs Ack',implode(chr(0x20).chr(0x2c).chr(0x20),$msg_ids),0);
 			return;
 		# rpc_result#f35c6d01 req_msg_id:long result:Object = RpcResult; #
@@ -298,7 +295,7 @@ final class Sender {
 				$constructorId = $reader->readInt();
 				# gzip_packed#3072cfa1 packed_data:string = Object; #
 				if($constructorId === 0x3072cfa1):
-					$packed_data = $reader->tgreadBytes();
+					$packed_data = $reader->readBytes();
 					$unpacked = gzdecode($packed_data);
 					$reader = new Binary();
 					$reader->write($unpacked);
@@ -307,10 +304,10 @@ final class Sender {
 				# rpc_error#2144ca19 error_code:int error_message:string = RpcError; #
 				if($constructorId === 0x2144ca19):
 					$error_code = $reader->readInt();
-					$error_message = $reader->tgreadBytes();
+					$error_message = $reader->readBytes();
 					Logging::log('RPC',$error_code.chr(32).$error_message,E_ERROR);
 					$hash = array_search($req_msg_id,$this->msgIds);
-					$this->received[$hash] = (object) ['status'=>'error','exception'=>new Errors($error_message,$error_code)];
+					$this->received[$hash] = (object) ['status'=>'error','exception'=>new RpcError($error_message,$error_code)];
 				# rpc_answer_unknown#5e2ad36e = RpcDropAnswer; #
 				elseif($constructorId === 0x5e2ad36e):
 					# nothing ! #
@@ -323,7 +320,7 @@ final class Sender {
 					$seq_no = $reader->readInt();
 					$bytes = $reader->readInt();
 				else:
-					$result = $reader->tgreadObject(true);
+					$result = $reader->readObject(true);
 					$hash = array_search($req_msg_id,$this->msgIds);
 					$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
 					if(in_array($constructorId,self::UPDATES)):
@@ -336,11 +333,7 @@ final class Sender {
 			$first_msg_id = $reader->readLong();
 			$unique_id = $reader->readLong();
 			$server_salt = $reader->readLong();
-			# $session_id = $this->load->id;
-			# $this->session->reset();
-			# $this->load['id'] = $unique_id;
 			$this->load['salt'] = $server_salt;
-			# $this->destroy($session_id);
 			Logging::log('New Session Created','First Message ID : '.$first_msg_id,0);
 		# bad_msg_notification#a7eff811 bad_msg_id:long bad_msg_seqno:int error_code:int = BadMsgNotification; #
 		elseif($constructorId == 0xa7eff811):
@@ -360,7 +353,7 @@ final class Sender {
 				elseif(in_array($error_code,array(34,35))):
 					$this->load['sequence'] += 1;
 				else:
-					$status_msg = (object) ['status'=>'error','exception'=>new Errors('Bad Msg Notification !',$error_code)];
+					$status_msg = (object) ['status'=>'error','exception'=>new RpcError('Bad Msg Notification !',$error_code)];
 				endif;
 				$hash = array_search($bad_msg_id,$this->msgIds);
 				$this->received[$hash] = $status_msg;
@@ -396,7 +389,7 @@ final class Sender {
 			$req_msg_id = $reader->readLong();
 			if(in_array($req_msg_id,$this->msgIds)):
 				$now = $reader->readInt();
-				$salts = $reader->tgreadVector('future_salt');
+				$salts = $reader->readVector('future_salt');
 				$this->load['salt'] = end($salts);
 				$hash = array_search($req_msg_id,$this->msgIds);
 				$this->received[$hash] = (object) ['status'=>'success','result'=>$salts];
@@ -405,7 +398,7 @@ final class Sender {
 		# destroy_session_ok#e22045fc session_id:long = DestroySessionRes; #
 		# destroy_session_none#62d350c9 session_id:long = DestroySessionRes; #
 		elseif(in_array($constructorId,array(0xe22045fc,0x62d350c9))):
-			$result = $reader->tgreadObject(true);
+			$result = $reader->readObject(true);
 			$hash = array_search(NonRpcResult::DESTROY_SESSION,$this->identifiers);
 			$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
 			Logging::log('Destroy Session Res','Session Id : '.$result->session_id,0);
@@ -413,15 +406,15 @@ final class Sender {
 		# destroy_auth_key_none#0a9f2259 = DestroyAuthKeyRes; #
 		# destroy_auth_key_fail#ea109b13 = DestroyAuthKeyRes; #
 		elseif(in_array($constructorId,array(0xf660e1d4,0x0a9f2259,0xea109b13))):
-			$result = $reader->tgreadObject(true);
+			$result = $reader->readObject(true);
 			$hash = array_search(NonRpcResult::DESTROY_AUTH_KEY,$this->identifiers);
 			$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
 			Logging::log('Destroy Auth',$result->getClass(),E_WARNING);
 		elseif(in_array($constructorId,self::UPDATES)):
-			$this->handler->processUpdate($reader->tgreadObject(true));
+			$this->handler->processUpdate($reader->readObject(true));
 		else:
 			Logging::log('Process Message','Unknown message : 0x'.dechex($constructorId),E_WARNING);
-			var_dump($reader->tgreadObject(true));
+			var_dump($reader->readObject(true));
 		endif;
 		$this->pendingAcks []= $messageId;
 		$this->sendAcknowledgement();
@@ -431,15 +424,16 @@ final class Sender {
 			$result = $this(raw : new \Tak\Liveproto\Tl\Functions\Other\DestroySession(['session_id'=>$session_id]),identifier : NonRpcResult::DESTROY_SESSION);
 			if($result instanceof \Tak\Liveproto\Tl\Types\Other\DestroySessionOk):
 				$this->session->reset(id : $session_id);
+				return;
 			endif;
 			Logging::log('Destroy Session','Session Id : '.$session_id.' , Result : '.$result->getClass(),0);
 		endif;
+		$this->session->reset();
 	}
 	public function ping() : void {
 		if(isset($this->receiveLoop)):
 			$ping_id = random_int(PHP_INT_MIN,PHP_INT_MAX);
 			Logging::log('Live','Ping ...',0);
-			# $pong_id = $this(raw : new \Tak\Liveproto\Tl\Functions\Other\PingDelayDisconnect(['ping_id'=>$ping_id,'disconnect_delay'=>75]));
 			$raw = new \Tak\Liveproto\Tl\Functions\Other\PingDelayDisconnect(['ping_id'=>$ping_id,'disconnect_delay'=>75]);
 			$binary = $raw->stream();
 			$this->sendPacket(request : $binary);

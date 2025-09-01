@@ -4,6 +4,10 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Network\Protocols;
 
+use Tak\Liveproto\Errors\Security;
+
+use Tak\Liveproto\Errors\TransportError;
+
 use Tak\Liveproto\Utils\Binary;
 
 final class Http {
@@ -43,11 +47,11 @@ final class Http {
 		list($protocol,$code,$description) = explode(chr(32),array_shift($headers),3);
 		list($protocol,$version) = explode(chr(47),$protocol);
 		if($protocol !== 'HTTP'):
-			throw new \Exception('Wrong protocol : '.$protocol);
+			throw new Security('Wrong protocol : '.$protocol);
 		elseif(array_pop($headers).array_pop($headers) !== strval(null)):
-			throw new \Exception('Wrong last HTTP header');
+			throw new Security('Wrong last HTTP header');
 		elseif($code != 200):
-			throw new \Exception($description,$code);
+			throw new TransportError($description,$code);
 		endif;
 		$headers = array_change_key_case(array_column(array_map(fn(string $item) : array => array_map('trim',explode(chr(58),$item)),$headers),1,0));
 		if(isset($headers['connection'])):

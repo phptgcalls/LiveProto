@@ -2,13 +2,13 @@
 
 declare(strict_types = 1);
 
-namespace Tak\Liveproto\Utils;
+namespace Tak\Liveproto\Errors;
 
 use Exception;
 
 use function Amp\File\read;
 
-final class Errors extends Exception {
+final class RpcError extends Exception {
 	protected string $type;
 	protected string $description;
 	protected int $value;

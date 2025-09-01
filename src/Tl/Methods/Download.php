@@ -6,11 +6,11 @@ namespace Tak\Liveproto\Tl\Methods;
 
 use Tak\Liveproto\Crypto\Aes;
 
-use Tak\Liveproto\Utils\Security;
+use Tak\Liveproto\Errors\Security;
+
+use Tak\Liveproto\Errors\RpcError;
 
 use Tak\Liveproto\Utils\Binary;
-
-use Tak\Liveproto\Utils\Errors;
 
 use Tak\Liveproto\Utils\Logging;
 
@@ -31,7 +31,7 @@ trait Download {
 		$client = $this->switchDC(dcid : $dcid,media : true);
 		try {
 			$getFile = $client->upload->getFile(location : $location,offset : $offset,limit : $limit,cdn_supported : true,timeout : 10);
-		} catch(Errors $error){
+		} catch(RpcError $error){
 			if($error->getCode() == 303):
 				$dcid = $error->getValue();
 				return $this->download_file($path,$size,$dcid,$location,$progresscallback,$key,$iv);
