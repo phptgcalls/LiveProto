@@ -134,7 +134,7 @@ $client->connect();
 
 try {
 	if($client->isAuthorized() === false){
-		$client->sign_in(token : '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11');
+		$client->sign_in(bot_token : '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11');
 	}
 	var_dump($client->get_me());
 } catch(Throwable $e){

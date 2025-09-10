@@ -67,7 +67,7 @@ $client->connect();
 
 try {
 	if($client->isAuthorized() === false){
-		$client->sign_in(token : '123456:AAEK.....');
+		$client->sign_in(bot_token : '123456:AAEK.....');
 	}
 	/* 😁 If you would like to avoid errors, enter your username in the line below 😎 */
 	$peer = $client->get_input_peer('@TakNone');
