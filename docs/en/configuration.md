@@ -158,7 +158,7 @@ If its value is false, it uses Telegram IP version 4 (ipv4), and if it is true, 
 - Type : `...Mixed` <kbd>optional</kbd>
 - Default : `False`
 
-You can pass anything that method [initTakeoutSession](https://core.telegram.org/method/account.initTakeoutSession) accepts as a parameter
+You can pass anything that method [initTakeoutSession](https://tl.liveproto.dev/#/method/account.initTakeoutSession) accepts as a parameter
 
 !> Note, You can also provide an empty array to enable it , like `$settings->setTakeout(array())`
 

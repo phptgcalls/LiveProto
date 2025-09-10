@@ -42,7 +42,7 @@
 
 - `getAuthorizations` => <kbd>array</kbd> : Returns all active authorizations
 
-  - <kbd>mixed | array $filters</kbd> , optional filter(s) to restrict results
+  - <kbd>mixed ...$filters</kbd> , optional filter(s) to restrict results
 
 - `isAuthorized` => <kbd>bool</kbd> : Returns whether the client is currently authorized ( `Authentication::LOGIN` )
 
@@ -62,7 +62,7 @@
 
   - <kbd>object | callable $callback</kbd> , the handler to invoke on incoming updates
   - <kbd>? string $unique = null</kbd> , an optional key to identify this handler
-  - <kbd>Filter | array | null $filters</kbd> , update‐filter(s) to apply
+  - <kbd>Filter ...$filters</kbd> , update‐filter(s) to apply
 
 - `removeHandler` => <kbd>void</kbd> : Removes a previously added handler
 

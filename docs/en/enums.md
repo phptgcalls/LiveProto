@@ -9,17 +9,21 @@ Here we want to introduce the Enumerations that are used in <mark>LiveProto</mar
 ## Authentication
 
 - Cases
-  - NEEDAUTHENTICATION <kbd>0</kbd>
-  - NEEDCODE <kbd>1</kbd>
-  - NEEDPASSWORD <kbd>2</kbd>
-  - LOGIN <kbd>3</kbd>
+  - NEED_AUTHENTICATION <kbd>0</kbd>
+  - NEED_CODE <kbd>1</kbd>
+  - NEED_CODE_PAYMENT_REQUIRED <kbd>2</kbd>
+  - NEED_EMAIL <kbd>3</kbd>
+  - NEED_EMAIL_VERIFY <kbd>4</kbd>
+  - NEED_PASSWORD <kbd>5</kbd>
+  - NEED_SIGNUP <kbd>6</kbd>
+  - LOGIN <kbd>7</kbd>
 
 You can take the step in which your session is now using the following method and do the next step yourself
 
 ```php
 $step = $client->getStep();
 
-if($step === Authentication::NEEDCODE){
+if($step === Authentication::NEED_CODE){
 	$client->sign_in(code : '12345');
 } elseif($step === Authentication::LOGIN){
 	$client->account->updateProfile(about : 'I am now using LiveProto 🌱');
@@ -46,7 +50,7 @@ if($step === Authentication::NEEDCODE){
   - PIPE <kbd>|</kbd>
   - AT <kbd>@</kbd>
 
-This is used in the [Command Filter](en/filters.md#Command) related to [update handlers](en/handlers.md), and pay attention to the example below
+This is used in the [Command Filter](en/handlers.md#update-filter-attributes) related to [update handlers](en/handlers.md), and pay attention to the example below
 
 ```php
 #[Filter(new NewMessage(new Command(hi : CommandType::AT,hello : CommandType::DOT)))]
@@ -55,7 +59,7 @@ function newUpdate(Incoming & IsPrivate $update) : void {
 }
 ```
 
-> It accepts messages in the form of `@hi` and `.Hello` only
+> It accepts messages in the form of `@hi` and `.hello` only
 
 ---
 
@@ -94,7 +98,7 @@ $settings->setProtocol(ProtocolType::ABRIDGED);
 
 ---
 
-## FileIdType
+## FileType
 
 - Cases
   - THUMBNAIL <kbd>thumbnail</kbd>
@@ -128,9 +132,9 @@ $settings->setProtocol(ProtocolType::ABRIDGED);
 You will see such a thing only when getting the file info from file id bot api
 
 ```php
-$info = $client->fromBotAPI(file_id : 'AgACAgEAAxkBAAL8XWdvz06uHzhKi17HUUnqAAFfFYuaewACN64xG2S5eUfdMz8mKD2olQEAAwIAA3MAAzYE');
+$info = $client->from_file_id(file_id : 'AgACAgEAAxkBAAL8XWdvz06uHzhKi17HUUnqAAFfFYuaewACN64xG2S5eUfdMz8mKD2olQEAAwIAA3MAAzYE');
 
-var_dump($info->file_type); // enum(Tak\Liveproto\Enums\FileIdType::PROFILE_PHOTO)
+var_dump($info->file_type); // enum(Tak\Liveproto\Enums\FileType::PROFILE_PHOTO)
 ```
 
 ---
@@ -145,6 +149,7 @@ var_dump($info->file_type); // enum(Tak\Liveproto\Enums\FileIdType::PROFILE_PHOT
   - GIGAGROUP <kbd>gigagroup</kbd>
   - MEGAGROUP <kbd>megagroup</kbd>
   - CHANNEL <kbd>channel</kbd>
+  - UNKNOWN <kbd>unknown</kbd>
 
 You can use the following method to get the peer type to find out what this @username is related to, channel or group , ...
 

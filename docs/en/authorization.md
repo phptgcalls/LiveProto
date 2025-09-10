@@ -83,7 +83,7 @@ $client->start();
 $client->connect();
 
 try {
-	var_dump($client->sign_in(token : '4839574812:AAFD39kkdpWt3ywyRZergyOLMaJhac60qc'));
+	var_dump($client->sign_in(bot_token : '4839574812:AAFD39kkdpWt3ywyRZergyOLMaJhac60qc'));
 } catch(\Throwable $e){
 	var_dump($e);
 } finally {
@@ -91,4 +91,4 @@ try {
 }
 ```
 
-?> Note, After the first authorization, you no longer need to put the following parameters in your [`configuration`](en/configuration.md#Settings) because they are saved ( ~~ApiId~~ , ~~ApiHash~~ ) **This will work if your [Session Name](en/quickstart.md#Session) is not _Null_**
+?> Note, After the first authorization, you no longer need to put the following parameters in your [`configuration`](en/configuration.md#Settings) because they are saved ( ~~ApiId~~ , ~~ApiHash~~ ) **This will work if your [Session Name](en/quickstart.md#ResourceName) is not _Null_**

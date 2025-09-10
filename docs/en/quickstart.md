@@ -45,7 +45,7 @@ In this parameter, you enter the name of your session
 
 In this parameter, you specify how your session information will be stored
 
-!> You can give **Null** value only when [session](en/quickstart.md#Session) value is also **Null**
+!> You can give **Null** value only when [ResourceName](en/quickstart.md#ResourceName) value is also **Null**
 
 #### Settings
 

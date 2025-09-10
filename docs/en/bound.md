@@ -1,6 +1,6 @@
 # Bound Methods
 
-?> Note, Here, we’re going to discuss the methods related to [update handlers](en/handlers.md), If you use the library’s custom handler atterbuites, they provide built-in methods that make things easier for you. However, using them is completely optional
+?> Note, Here, we’re going to discuss the methods related to [update handlers](en/handlers.md), If you use the library’s custom handler attributes, they provide built-in methods that make things easier for you. However, using them is completely optional
 
 ---
 
@@ -70,7 +70,7 @@
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
 | `message` | `string` | <kbd style="color : red">required</kbd> | The text of the message to be sent |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendMessage](https://core.telegram.org/method/messages.sendMessage) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendMessage](https://tl.liveproto.dev/#/method/messages.sendMessage) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -101,8 +101,8 @@
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
 | `message` | `string` | <kbd style="color : red">required</kbd> | The text of the message to be sent |
-| `reply_to` | `array` | empty `array()` | The values of this variable are passed to [InputReplyTo](https://core.telegram.org/type/InputReplyTo) **except for** the values of `reply_to_msg_id` and `peer` and `story_id`  |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendMessage](https://core.telegram.org/method/messages.sendMessage) |
+| `reply_to` | `array` | empty `array()` | The values of this variable are passed to [InputReplyTo](https://tl.liveproto.dev/#/type/InputReplyTo) **except for** the values of `reply_to_msg_id` and `peer` and `story_id`  |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendMessage](https://tl.liveproto.dev/#/method/messages.sendMessage) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -127,8 +127,8 @@
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
 | `peer` | `mixed` | <kbd style="color : red">required</kbd> | This is to specify which peer to forward the message to |
-| `reply_to` | `array` | empty `array()` | The values of this variable are passed to [InputReplyTo](https://core.telegram.org/type/InputReplyTo) **including** the values of `reply_to_msg_id` or `peer` and `story_id`  |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [forwardMessages](https://core.telegram.org/method/messages.forwardMessages) |
+| `reply_to` | `array` | empty `array()` | The values of this variable are passed to [InputReplyTo](https://tl.liveproto.dev/#/type/InputReplyTo) **including** the values of `reply_to_msg_id` or `peer` and `story_id`  |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [forwardMessages](https://tl.liveproto.dev/#/method/messages.forwardMessages) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -154,7 +154,7 @@
 | :---: | :---: | :---: | :--- |
 | `message` | `string` | `null` | The new text of the message that is to be changed |
 | `media` | `object` | `null` | The new media of the message that is to be changed |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [editMessage](https://core.telegram.org/method/messages.editMessage) or [editInlineBotMessage](https://core.telegram.org/method/messages.editInlineBotMessage) for inline bot message |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [editMessage](https://tl.liveproto.dev/#/method/messages.editMessage) or [editInlineBotMessage](https://tl.liveproto.dev/#/method/messages.editInlineBotMessage) for inline bot message |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -178,7 +178,7 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [updatePinnedMessage](https://core.telegram.org/method/messages.updatePinnedMessage) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [updatePinnedMessage](https://tl.liveproto.dev/#/method/messages.updatePinnedMessage) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -201,7 +201,7 @@
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
 | `all` | `bool` | `false` | If true, all messages in the current chat will be unpinned |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [updatePinnedMessage](https://core.telegram.org/method/messages.updatePinnedMessage), If the `all` parameter is `true`, they are passed to the [unpinAllMessages](https://core.telegram.org/method/messages.unpinAllMessages) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [updatePinnedMessage](https://tl.liveproto.dev/#/method/messages.updatePinnedMessage), If the `all` parameter is `true`, they are passed to the [unpinAllMessages](https://tl.liveproto.dev/#/method/messages.unpinAllMessages) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -246,7 +246,7 @@
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
 | `reaction` | `mixed` | <kbd style="color : red">required</kbd> | If it is null, the reaction will be deleted, if it is a string, the same emoji will be selected as the reaction, if it is a integer, its custom emoji will be selected, and if it is an array, a list of reactions will be played simultaneously |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendReaction](https://core.telegram.org/method/messages.sendReaction) or [sendReaction](https://core.telegram.org/method/stories.sendReaction) for stories |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendReaction](https://tl.liveproto.dev/#/method/messages.sendReaction) or [sendReaction](https://tl.liveproto.dev/#/method/stories.sendReaction) for stories |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -271,7 +271,7 @@
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
 | `cache` | `int` | <kbd style="color : red">required</kbd> | Cache validity time |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [setBotCallbackAnswer](https://core.telegram.org/method/messages.setBotCallbackAnswer) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [setBotCallbackAnswer](https://tl.liveproto.dev/#/method/messages.setBotCallbackAnswer) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -288,12 +288,12 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `results` | `array` | <kbd style="color : red">required</kbd> | Vector of [results](https://core.telegram.org/type/InputBotInlineResult) for the inline query |
+| `results` | `array` | <kbd style="color : red">required</kbd> | Vector of [results](https://tl.liveproto.dev/#/type/InputBotInlineResult) for the inline query |
 | `cache` | `int` | <kbd style="color : red">required</kbd> | The maximum amount of time in seconds that the result of the inline query may be cached on the server |
 | `switch_text` | `string` | `null` | Text for the button that switches the user to a private chat with the bot and sends the bot a start message with the parameter `start_parameter` or Text of the button `webapp` |
 | `switch_url` | `string` | `null` | The `webapp` URL |
 | `start_param` | `string` | `null` | The parameter for the `/start parameter` |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [setInlineBotResults](https://core.telegram.org/method/messages.setInlineBotResults) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [setInlineBotResults](https://tl.liveproto.dev/#/method/messages.setInlineBotResults) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -310,7 +310,7 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [exportStoryLink](https://core.telegram.org/method/stories.exportStoryLink) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [exportStoryLink](https://tl.liveproto.dev/#/method/stories.exportStoryLink) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -327,7 +327,7 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [getPeerStories](https://core.telegram.org/method/stories.getPeerStories) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [getPeerStories](https://tl.liveproto.dev/#/method/stories.getPeerStories) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -346,7 +346,7 @@
 | :---: | :---: | :---: | :--- |
 | `approved` | `true` | `null` | If true, The last user's request is accepted provided that `all` is `false` |
 | `all` | `bool` | `false` | If true, All requests are hidden |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [hideAllChatJoinRequests](https://core.telegram.org/method/messages.hideAllChatJoinRequests) , provided that `all` equals `true` |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [hideAllChatJoinRequests](https://tl.liveproto.dev/#/method/messages.hideAllChatJoinRequests) , provided that `all` equals `true` |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -382,7 +382,7 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `reply_to` | `array` | empty `array()` | The values of this variable are passed to [InputReplyTo](https://core.telegram.org/type/InputReplyTo) except for the values of `reply_to_msg_id` |
+| `reply_to` | `array` | empty `array()` | The values of this variable are passed to [InputReplyTo](https://tl.liveproto.dev/#/type/InputReplyTo) except for the values of `reply_to_msg_id` |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -402,7 +402,7 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [block](https://core.telegram.org/method/contacts.block) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [block](https://tl.liveproto.dev/#/method/contacts.block) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -422,7 +422,7 @@
 
 | Parameter | Type | Default | Description |
 | :---: | :---: | :---: | :--- |
-| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [unblock](https://core.telegram.org/method/contacts.unblock) |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [unblock](https://tl.liveproto.dev/#/method/contacts.unblock) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>
@@ -483,6 +483,26 @@
 
 > [!NOTE]
 > There are no parameters for this method
+
+<details>
+<summary style="color : slateblue">Belongs to which handlers ?!</summary>
+
+- Messages 
+  - [`NewMessage`](en/handlers.md#NewMessage)
+  - [`MessageEdited`](en/handlers.md#MessageEdited)
+  - [`NewScheduledMessage`](en/handlers.md#NewScheduledMessage)
+
+</details>
+
+---
+
+### resolveSuggestion
+
+> approve / reject suggested posts
+
+| Parameter | Type | Default | Description |
+| :---: | :---: | :---: | :--- |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [toggleSuggestedPostApproval](https://tl.liveproto.dev/#/method/messages.toggleSuggestedPostApproval) |
 
 <details>
 <summary style="color : slateblue">Belongs to which handlers ?!</summary>

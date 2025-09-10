@@ -32,3 +32,12 @@
 
   # V0.0.9 UPDATED 🎉
  - DATE : 2025-08-20
+
+ # V0.0.10 PUBLISHED 🎉
+ - DATE : 2025-09-26
+
+  # V0.0.11 PUBLISHED 🎉
+ - DATE : 2025-09-01
+
+  # V0.0.12 PUBLISHED 🎉
+ - DATE : 2025-09-10

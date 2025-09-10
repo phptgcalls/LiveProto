@@ -78,7 +78,7 @@ final class Sender {
 		if(is_null($identifier) === false):
 			$this->identifiers[$this->objectHash($request)] = $identifier;
 		endif;
-		Logging::log('Send Packet','Request : '.strval($request).' , Packet length : '.strlen($message).' , Message ID : '.$message_id,0);
+		Logging::log('Send Packet','Request : '.strval($request).' , Packet length : '.strlen($message).' , Message ID : '.$message_id.' , Identifier Type : '.gettype($identifier),0);
 		$this->transport->send($message);
 	}
 	public function composePlainMessage(Binary $request,int $salt,int $session_id,int $message_id,int $sequence) : string {
@@ -368,13 +368,11 @@ final class Sender {
 				$bad_msg_seqno = $reader->readInt();
 				$error_code = $reader->readInt();
 				if(in_array($error_code,array(16,17))):
-					$this->session->updateTimeOffset($bad_msg_id);
+					$this->session->updateTimeOffset($messageId);
 				elseif($error_code == 18):
-					$this->load['sequence'] = ceil($this->load['sequence'] / 4) * 4;
-				elseif($error_code == 32):
-					$this->load['sequence'] += 128;
-				elseif($error_code == 33):
-					$this->load['sequence'] -= 32;
+					$this->load['sequence'] = intval(ceil($this->load['sequence'] / 4) * 4);
+				elseif(in_array($error_code,array(32,33))):
+					$this->session->reset();
 				elseif(in_array($error_code,array(34,35))):
 					$this->load['sequence'] += 1;
 				else:

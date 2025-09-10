@@ -1,6 +1,6 @@
 # Invoking
 
-?> Note, Here we want to explain to you how exactly you can use raw [functions](en/functions.md) and directly exchange your requests between your client and Telegram servers.
+?> Note, Here we want to explain to you how exactly you can use raw [functions](https://tl.liveproto.dev/#/method) and directly exchange your requests between your client and Telegram servers
 
 ---
 
@@ -106,9 +106,63 @@ var_dump($client('messages/sendMessageMultiple',[array('peer'=>$client->get_inpu
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `raw` | `Boolean` | `false` | Gets the method without executing it , Used as parameters ( like [`query:!X`](https://core.telegram.org/api/invoking) ) of some methods
-| `response` | `Boolean` | `true` | If it is false, it means you are not looking for the result of your request and are not waiting for Telegram to notify you of the answer
-| `timeout` | `Float` | `0` | If zero, it is disabled, otherwise it specifies the maximum time you want to wait for the request result
-| `floodwaitlimit` | `Float` | `0` | If zero, it is disabled, otherwise you specify the maximum time you want to wait before resending the request if a flood wait error is encountered
+| `raw` | `Boolean` | `false` | Gets the method without executing it , Used as parameters ( like [`query:!X`](https://core.telegram.org/api/invoking) ) of some methods |
+| `response` | `Boolean` | `true` | If it is false, it means you are not looking for the result of your request and are not waiting for Telegram to notify you of the answer |
+| `timeout` | `Integer` | `0` | If zero, it is disabled, otherwise it specifies the maximum time you want to wait for the request result |
+| `floodwaitlimit` | `Integer` | `0` | If zero, it is disabled, otherwise you specify the maximum time you want to wait before resending the request if a flood wait error is encountered |
+| `extra` | `mixed` | `Null` | If null, it is disabled, otherwise you can add additional information to the response to a specific request |
 
 ?> Note, If the flood wait time exceeds the maximum time set, we will not resend it and you will encounter a flood wait error and you will have to handle it yourself , And we also consider the maximum value you set between the `floodwaitlimit` parameter and the [`floodsleepthreshold`](en/configuration.md#flood-sleep-threshold) parameter
+
+---
+
+#### Disabling updates
+
+The [invokeWithoutUpdates](https://tl.liveproto.dev/#/method/invokeWithoutUpdates) can be used to invoke a request without subscribing the used connection for updates ( this is enabled by default for file queries )
+
+```php
+$temp = $client->getTemp(dc_id : 2,expires_in : 24 * 60 * 60);
+
+var_dump($temp->messages->sendMessage(peer : $peer,message : 'We will not track updates in this hypothetical connection',random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),receiveupdates : false));
+```
+
+#### Sequential Requests
+
+By default, the server processes parallel requests in arbitrary order. Two helper methods exist for cases when the client needs certain requests to be processed in a certain order and intends to send a new request before the previous one is completed
+These methods allow reducing the latency for calls which require strict ordering, since the client doesn't have to wait for the result of the previous method call before sending the next one in the queue, and can just send them all together
+
+```php
+$texts = ['1) First message','2) Second message','3) Third message'];
+
+$inputPeer = $client->get_input_peer('@LiveProtoChat');
+
+$requests = array(['peer'=>$inputPeer,'message'=>'🏁 Start sending messages','random_id'=>random_int(PHP_INT_MIN,PHP_INT_MAX)]);
+
+foreach($texts as $message){
+	$requests []= ['peer'=>$inputPeer,'message'=>$message,'random_id'=>random_int(PHP_INT_MIN,PHP_INT_MAX)];
+}
+
+var_dump($client->messages->sendMessageMultiple(...$requests,responses : true,queued : true));
+```
+
+#### Takeout API
+
+pass the appropriate flags to enable usage of the corresponding methods, as [» described](en/configuration.md#Takeout)
+
+```php
+$telegram = $client->get_intput_peer('+42777');
+
+$messages = $client->messages->getHistory(
+	peer : $telegram,
+	offset_id : 0,
+	offset_date : 0,
+	add_offset : 0,
+	limit : 200,
+	max_id : 0, // This parameter works if the value is positive //
+	min_id : 0, // This parameter works if the value is positive //
+	hash : 0,
+	takeout : true
+);
+
+var_dump($messages);
+```

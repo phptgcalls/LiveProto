@@ -59,6 +59,10 @@ Represents a new story from the peer
 
 You will receive this event when someone shares a story on their channel / account / group profile 
 
+### Precheckout
+
+This object contains information about an incoming pre-checkout query
+
 ---
 
 ## Subscribe for updates
@@ -213,6 +217,8 @@ The namespace for these is `Tak\Liveproto\Filters\Interfaces\__X__`
 | **IsNotSilent** | Messages that **do** trigger notifications |
 | **IsPost** | Channel **posts** ( `message.post === true` ) |
 | **IsNotPost** | Messages that are **not** channel posts |
+| **IsSuggest** | Channel **suggested posts** ( `message.suggested_post` ) |
+| **IsNotSuggest** | Messages that are **not** channel suggested posts |
 | **IsPinned** | Messages that are **pinned** in a chat ( `message.pinned === true` ) |
 | **IsNotPinned** | Messages that are **not** pinned |
 | **IsForwarded** | Messages that were **forwarded** ( `message.fwd_from` set ) |
@@ -350,7 +356,7 @@ function onPrivateInlineKeyboard(Incoming & IsPrivate & HasReplyMarkup $update) 
 
 ---
 
-## Update Filter Atterbuites
+## Update Filter Attributes
 
 The namespace for these is `Tak\Liveproto\Filters\Filter\__X__`
 
@@ -363,7 +369,7 @@ The namespace for these is `Tak\Liveproto\Filters\Filter\__X__`
 
 ---
 
-### Usage Of Atterbuites
+### Usage Of Attributes
 
 ```php
 use Tak\Liveproto\Filters\Filter;

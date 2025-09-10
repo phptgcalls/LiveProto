@@ -26,6 +26,24 @@ $settings->setDatabase('DatabaseName');
 $client = new Client('YourSessionName','mysql',$settings);
 ```
 
+## SQLite
+
+SQLite database is easy to set up and testing
+
+```php
+use Tak\Liveproto\Network\Client;
+
+use Tak\Liveproto\Utils\Settings;
+
+$settings = new Settings();
+
+/* Telegram Settings */
+$settings->setApiId(29784714);
+$settings->setApiHash('143dfc3c92049c32fbc553de2e5fb8e4');
+
+$client = new Client('YourSessionName','sqlite',$settings);
+```
+
 ## String
 
 So in this case, your database is stored as a single string in a file with the extension `.session`, very efficient for a quick start
@@ -83,5 +101,6 @@ if($client->isAuthorized()){
   - [ ] Add it to client settings
 - [ ] Support for various databases
   - [ ] Postgresql
-  - [ ] SQLite3
+  - [x] SQLite3
   - [ ] MongoDB
+  - [x] MySQL

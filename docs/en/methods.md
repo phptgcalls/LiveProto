@@ -104,7 +104,7 @@ Usable by :
   - Any additional parameters you give will be passed to the [codeSettings](https://tl.liveproto.dev/#/constructor/codeSettings) construct
 
 ##### <pre>Returns</pre>
-An instance of [SentCode](https://tl.liveproto.dev/#/constructor/auth.sentCode)
+An instance of [SentCode](https://tl.liveproto.dev/#/type/auth.SentCode)
 
 ##### <pre>Example</pre>
 ```php
@@ -130,8 +130,11 @@ Usable by :
 - password(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
   - 2FA password, required if `SESSION_PASSWORD_NEEDED` exception is raised.
 
-- token(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+- bot_token(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
   - Used to sign in as a bot
+
+- web_token(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Used to sign in via telegram web
 
 - email(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
   - Set email verification
@@ -147,7 +150,7 @@ $client->sign_in(code : 12345,email : 'tak@liveproto.dev');
 
 $client->sign_in(password : 'HelloWorld');
 
-$client->sign_in(token : '4839574812:AAFD39kkdpWt3ywyRZergyOLMaJhac60qc');
+$client->sign_in(bot_token : '4839574812:AAFD39kkdpWt3ywyRZergyOLMaJhac60qc');
 ```
 
 ---
@@ -186,7 +189,7 @@ Usable by :
 - [ ] Bots
 
 ##### <pre>Returns</pre>
-An instance of [SentCode](https://tl.liveproto.dev/#/constructor/auth.sentCode)
+An instance of [SentCode](https://tl.liveproto.dev/#/type/auth.SentCode)
 
 ##### <pre>Example</pre>
 ```php
@@ -533,7 +536,7 @@ Usable by :
 - size(<small>int</small>) <kbd style="color : red">required</kbd> :
   - Size of the file
 
-- dcid(<small>int</small>) <kbd style="color : red">required</kbd> :
+- dc_id(<small>int</small>) <kbd style="color : red">required</kbd> :
   - Data center ID
 
 - location(<small>object</small>) <kbd style="color : red">required</kbd> :
@@ -558,7 +561,7 @@ $photo_id = $client->get_peer($peer)->photo->photo_id;
 $location = $client->inputPeerPhotoFileLocation(peer : $peer,photo_id : $photo_id,big : true);
 
 
-$client->download_file(path : __DIR__.DIRECTORY_SEPARATOR.'file.png',size : 2 * 1024 * 1024,dcid : 3,location : $location);
+$client->download_file(path : __DIR__.DIRECTORY_SEPARATOR.'file.png',size : 2 * 1024 * 1024,dc_id : 3,location : $location);
 ```
 
 ---
@@ -731,7 +734,7 @@ Returns the path of the saved vCard file
 
 ##### <pre>Example</pre>
 ```php
-$mediaContact = $client->inputMediaContact(phone_number : '+123456789',first_name : 'Live',last_name : 'Proto',vcard : '');
+$mediaContact = $client->inputMediaContact(phone_number : '+123456789',first_name : 'Live',last_name : 'Proto',vcard : strval(null));
 
 $client->download_contact(path : './file.vcard',file : $mediaContact);
 ```
@@ -1020,6 +1023,92 @@ foreach($formatted as $newEntity){
 
 ---
 
+## get_input_media()
+
+Used to get input of media from message media
+
+Usable by :
+- [x] Users
+- [x] Bots
+
+##### <pre>Arguments</pre>
+- message_media(<small>object</small>) <kbd style="color : red">required</kbd> :
+  - An object of type [MessageMedia](https://tl.liveproto.dev/#/type/MessageMedia) must be
+
+##### <pre>Returns</pre>
+An instance of [InputMedia](https://tl.liveproto.dev/#/type/InputMedia)
+
+##### <pre>Example</pre>
+```php
+$nessageMedia = $client->messageMediaDice(value : 6,emoticon : '🎲');
+
+$inputMedia = $client->get_input_media($nessageMedia);
+
+$peer = $client->get_input_peer('@TakNone');
+
+$caption = 'Hello World 🌎';
+
+$client->messages->sendMedia(peer : $peer,media : $inputMedia,message : $caption,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX));
+```
+
+---
+
+## inputify_media()
+
+Used to get input of any media from media
+
+Usable by :
+- [x] Users
+- [x] Bots
+
+##### <pre>Arguments</pre>
+- media(<small>object</small>) <kbd style="color : red">required</kbd> :
+  - The media can be photos, documents, or even games, etc
+
+##### <pre>Returns</pre>
+An instance of [InputPhoto](https://tl.liveproto.dev/#/type/InputPhoto), [inputDocument](https://tl.liveproto.dev/#/type/inputDocument), [inputGeoPoint](https://tl.liveproto.dev/#/type/inputGeoPoint) , etc
+
+##### <pre>Example</pre>
+```php
+$photo = $client->photoEmpty(id : 123456789);
+
+$inputPhoto = $client->inputify_media(media : $photo);
+```
+
+---
+
+## get_message_media()
+
+Used to get message media from input media uploaded
+
+Usable by :
+- [x] Users
+- [x] Bots
+
+##### <pre>Arguments</pre>
+- inputMedia(<small>object</small>) <kbd style="color : red">required</kbd> :
+  - The media can be photos, documents, or even games, etc
+
+- peer(<small>string</small>,<small>int</small>,<small>object</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Username, user ID, or object representing the peer
+
+- ...args(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
+  - Any additional parameters you give will be passed to the [uploadMedia](https://tl.liveproto.dev/#/method/messages.uploadMedia)
+
+##### <pre>Returns</pre>
+An instance of [MessageMedia](https://tl.liveproto.dev/#/type/MessageMedia)
+
+##### <pre>Example</pre>
+```php
+$inputFile = $client->upload_file(path : './file.png');
+
+$inputMedia = $client->inputMediaUploadedPhoto(file : $inputFile);
+
+$messageMedia = $client->get_message_media(inputMedia : $inputMedia);
+```
+
+---
+
 ## from_file_id()
 
 Parses a Telegram Bot API-style file_id and converts it into an internal file representation
@@ -1061,8 +1150,8 @@ Usable by :
 - [x] Bots
 
 ##### <pre>Arguments</pre>
-- file_type(<small>FileIdType</small>) <kbd style="color : red">required</kbd> :
-  - The enumerated file ID type ( e.g. Photo , Document ) as [`FileIdType`](en/enums.md#FileIdType)
+- file_type(<small>FileType</small>) <kbd style="color : red">required</kbd> :
+  - The enumerated file ID type ( e.g. Photo , Document ) as [`FileType`](en/enums.md#FileType)
 
 - dc_id(<small>int</small>) <kbd style="color : red">required</kbd> :
   - Data center ID where the file is stored

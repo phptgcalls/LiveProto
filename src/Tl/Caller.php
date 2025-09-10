@@ -157,23 +157,23 @@ final class Properties {
 		if($class = $this->createObject('Tak\\Liveproto\\Tl\\Functions\\'.ucfirst($this->property).'\\'.ucfirst($name))):
 			$parameters = [
 				'raw'=>[
-					'func'=>boolval(...),
+					'func'=>is_bool(...),
 					'default'=>false
 				],
 				'response'=>[
-					'func'=>boolval(...),
+					'func'=>is_bool(...),
 					'default'=>true
 				],
 				'timeout'=>[
-					'func'=>floatval(...),
+					'func'=>is_int(...),
 					'default'=>0
 				],
 				'floodwaitlimit'=>[
-					'func'=>floatval(...),
+					'func'=>is_int(...),
 					'default'=>0
 				],
 				'messageid'=>[
-					'func'=>intval(...),
+					'func'=>is_int(...),
 					'default'=>null
 				],
 				'identifier'=>[
@@ -188,7 +188,7 @@ final class Properties {
 			$filtered = array();
 			foreach($parameters as $key => $value):
 				if(array_key_exists($key,$arguments)):
-					$filtered[$key] = is_null($value['func']) ? $arguments[$key] : call_user_func($value['func'],$arguments[$key]);
+					$filtered[$key] = boolval(is_null($value['func']) or call_user_func($value['func'],$arguments[$key])) ? $arguments[$key] : $value['default'];
 					unset($arguments[$key]);
 				else:
 					$filtered[$key] = $value['default'];

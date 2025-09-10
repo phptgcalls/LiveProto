@@ -4202,13 +4202,13 @@
 
   - [messages.translateText](https://core.telegram.org/method/messages.translateText)
 
-# How do we handle errors ?
+# How do we handle rpc errors ?
 
-?> Note, You just need to use class `\Tak\Liveproto\Utils\Errors` which inherits from Exception
+?> Note, You just need to use class `\Tak\Liveproto\Errors\RpcError` which inherits from Exception
 
 ```php
 
-use Tak\Liveproto\Utils\Errors;
+use Tak\Liveproto\Errors\RpcError;
 
 use function Amp\delay;
 
@@ -4217,7 +4217,7 @@ try {
 	$text = 'Hello , I wanted to see how the FLOOD_WAIT error works 😜';
 	$peer = $client->get_input_peer('@TakNone');
 	$client->messages->sendMessage(peer : $peer,message : $text,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX));
-} catch(Errors $error){
+} catch(RpcError $error){
 	var_dump($error);
 	/*
 	FLOOD_WAIT_%d is a type of `FLOOD` error that has code 420

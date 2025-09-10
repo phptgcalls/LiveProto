@@ -25,7 +25,7 @@ require_once 'liveproto.php';
 ```php
 <?php
 
-define('LP_VERSION','0.0.5');
+define('LP_VERSION','0.0.12');
 
 if(file_exists('liveproto.php') === false):
     copy('https://installer.liveproto.dev/liveproto.php','liveproto.php');
@@ -39,11 +39,11 @@ OR
 ```php
 <?php
 
-if(file_exists('liveproto-v0.0.5.phar') === false):
-    copy('https://phar.liveproto.dev/v0.0.5/liveproto.phar','liveproto-v0.0.5.phar');
+if(file_exists('liveproto-v0.0.12.phar') === false):
+    copy('https://phar.liveproto.dev/v0.0.12/liveproto.phar','liveproto-v0.0.12.phar');
 endif;
 
-require_once 'liveproto-v0.0.5.phar';
+require_once 'liveproto-v0.0.12.phar';
 ```
 
 ---
