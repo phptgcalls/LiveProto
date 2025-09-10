@@ -10,9 +10,11 @@ abstract class Helper {
 	static public function unpack(string $format,string $string,int $offset = 0,Endianness $byteorder = Endianness::LITTLE) : mixed {
 		$un = unpack($format,$string,$offset);
 		$result = is_array($un) ? $un[true] : $un;
-		$type = gettype($result);
-		$result = ($byteorder->isLittle() ? $result : strrev(strval($result)));
-		settype($result,$type);
+		if($byteorder->isBig()):
+			$type = gettype($result);
+			$result = strrev(strval($result));
+			settype($result,$type);
+		endif;
 		return $result;
 	}
 	static public function pack(string $format,mixed $value,Endianness $byteorder = Endianness::LITTLE) : string {

@@ -9,7 +9,7 @@ final class Settings {
 
 	public function __get(string $property) : mixed {
 		$index = strtolower($property);
-		$value = isset($this->data[$index]) ? $this->data[$index] : null;
+		$value = isset($this->data[$index]) ? $this->data[$index] : $this->envGuess($index);
 		switch($index):
 			case 'apiid':
 				if(is_int($value) and $value <= 0) throw new \Exception('In the Settings , a valid value for the API ID has not been set');
@@ -103,6 +103,16 @@ final class Settings {
 	}
 	public function __debugInfo() : array {
 		return $this->data;
+	}
+	public function envGuess(string $name) : mixed {
+		/* Env can be `true` / `false` / `integer` / `JSON` (array) */
+		$env = getenv($name) ?: null;
+		$json = json_decode(strval($env),true);
+		return match(true){
+			is_numeric($env) => intval($env),
+			boolval(is_null($json) === false) => $json,
+			default => $env
+		};
 	}
 }
 

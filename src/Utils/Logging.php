@@ -51,8 +51,13 @@ final class Logging {
 		static $log = null;
 		if(Tools::inDestructor()) return;
 		if(exists(self::$path) and getSize(self::$path) >= self::$maxsize):
-			deleteFile(self::$path);
-			$log = null;
+			try {
+				deleteFile(self::$path);
+			} catch(\Throwable $error){
+				error_log('Error while deleting previous log : '.strval($error));
+			} finally {
+				$log = null;
+			}
 		endif;
 		if(exists(self::$path) === false or is_null($log)) $log = openFile(self::$path,'a+');
 		if(array_key_exists($level,self::COLORS)):

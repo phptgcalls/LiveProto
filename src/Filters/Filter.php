@@ -4,7 +4,9 @@ declare(strict_types = 1);
 
 namespace Tak\Liveproto\Filters;
 
-#[Attribute(Attribute::TARGET_CLASS)]
+use Attribute;
+
+#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 abstract class Filter {
 	public array $items;
 

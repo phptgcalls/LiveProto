@@ -12,6 +12,12 @@ use Tak\Liveproto\Crypto\Password;
 
 use Tak\Liveproto\Enums\Authentication;
 
+use Tak\Liveproto\Attributes\Type;
+
+use Tak\Attributes\Common\Vector;
+
+use Tak\Attributes\Common\Is;
+
 trait Auth {
 	public function send_code(string $phone_number,mixed ...$settings) : object {
 		try {
@@ -49,7 +55,7 @@ trait Auth {
 		$this->load->step = Authentication::LOGIN;
 		return $result;
 	}
-	public function sign_in(string | int | null $code = null,#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $token = null,? string $email = null) : object {
+	public function sign_in(string | int | null $code = null,#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $bot_token = null,#[\SensitiveParameter] ? string $web_token = null,? string $email = null) : object {
 		if(is_null($code) === false):
 			try {
 				$result = $this->auth->signIn(phone_code : strval($code),email_verification : $email,phone_number : $this->load->phonenumber,phone_code_hash : $this->load->phonecodehash);
@@ -71,14 +77,26 @@ trait Auth {
 			$result = $this->auth->checkPassword(password : $input);
 			$this->load->password = $password;
 			$this->load->step = Authentication::LOGIN;
-		elseif(is_null($token) === false):
+		elseif(is_null($bot_token) === false):
 			try {
-				$result = $this->auth->importBotAuthorization(bot_auth_token : $token,api_id : $this->load->api_id,api_hash : $this->load->api_hash,flags : 0);
+				$result = $this->auth->importBotAuthorization(bot_auth_token : $bot_token,api_id : $this->load->api_id,api_hash : $this->load->api_hash,flags : 0);
 				$this->load->step = Authentication::LOGIN;
 			} catch(\Throwable $error){
 				if($error->getCode() == 303):
 					$this->changeDC($error->getValue());
-					$result = $this->sign_in(token : $token);
+					$result = $this->sign_in(bot_token : $bot_token);
+				else:
+					throw $error;
+				endif;
+			}
+		elseif(is_null($web_token) === false):
+			try {
+				$result = $this->auth->importWebTokenAuthorization(web_auth_token : $web_token,api_id : $this->load->api_id,api_hash : $this->load->api_hash);
+				$this->load->step = Authentication::LOGIN;
+			} catch(\Throwable $error){
+				if($error->getCode() == 303):
+					$this->changeDC($error->getValue());
+					$result = $this->sign_in(web_token : $web_token);
 				else:
 					throw $error;
 				endif;
@@ -112,7 +130,7 @@ trait Auth {
 		$this->load->step = Authentication::NEED_AUTHENTICATION;
 		return $result;
 	}
-	public function save_authorization(object $authorization) : void {
+	protected function save_authorization(#[Type('auth.Authorization')] object $authorization) : void {
 		if(isset($authorization->future_auth_token)):
 			if(is_string($authorization->future_auth_token)):
 				$this->load->logout_tokens []= $authorization->future_auth_token;
@@ -120,7 +138,7 @@ trait Auth {
 			endif;
 		endif;
 	}
-	public function login_token(array $except_ids = array()) : string {
+	protected function login_token(#[Vector(new Is('int'))] array $except_ids = array()) : string {
 		$loginToken = $this->auth->exportLoginToken(except_ids : $except_ids,api_id : $this->load->api_id,api_hash : $this->load->api_hash);
 		$token = 'tg://login?token='.Tools::base64_url_encode($loginToken->token);
 		return $token;
@@ -133,7 +151,7 @@ trait Auth {
 		$result = $this->auth->acceptLoginToken(token : $token);
 		return $result;
 	}
-	public function wait_token(array $except_ids = array(),int $timeout = 30) : void {
+	protected function wait_token(#[Vector(new Is('int'))] array $except_ids = array(),int $timeout = 30) : void {
 		$this->fetchUpdate(updates : array('updateLoginToken'),timeout : $timeout)->await();
 		$loginToken = $this->auth->exportLoginToken(except_ids : $except_ids,api_id : $this->load->api_id,api_hash : $this->load->api_hash);
 		if($loginToken instanceof \Tak\Liveproto\Tl\Types\Auth\LoginTokenMigrateTo):

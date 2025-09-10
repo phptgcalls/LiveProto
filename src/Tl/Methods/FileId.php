@@ -14,9 +14,11 @@ use Tak\Liveproto\Utils\Instance;
 
 use Tak\Liveproto\Utils\Logging;
 
-use Tak\Liveproto\Enums\FileIdType;
+use Tak\Liveproto\Enums\FileType;
 
 use Tak\Liveproto\Enums\PhotoSizeType;
+
+use Tak\Liveproto\Attributes\Type;
 
 # https://github.com/tdlib/td/blob/master/td/telegram/files/FileLocation.hpp #
 trait FileId {
@@ -37,7 +39,7 @@ trait FileId {
 		$url = ($type & self::WEB_LOCATION_FLAG ? $reader->readBytes() : null);
 		$type &= ~ self::FILE_REFERENCE_FLAG;
 		$type &= ~ self::WEB_LOCATION_FLAG;
-		if($type < 0 or $type >= FileIdType::SIZE->toId()):
+		if($type < 0 or $type >= FileType::SIZE->toId()):
 			Logging::log('FileId','Invalid FileType !',E_ERROR);
 		endif;
 		if(is_null($url) === false):
@@ -78,7 +80,7 @@ trait FileId {
 		$volume_id = null;
 		$local_id = null;
 		$secret = null;
-		if($type <= FileIdType::PHOTO->toId()):
+		if($type <= FileType::PHOTO->toId()):
 			if($subVersion >= self::REMOVE_PHOTO_VOLUME_AND_LOCALID):
 				$source = $reader->readInt();
 			else:
@@ -150,7 +152,7 @@ trait FileId {
 			'sub_version'=>$subVersion,
 			'dc_id'=>$dc,
 			'file_reference'=>$fileReference,
-			'file_type'=>FileIdType::fromId($type),
+			'file_type'=>FileType::fromId($type),
 			'id'=>$id,
 			'access_hash'=>$accessHash,
 			'volume_id'=>$volume_id,
@@ -164,7 +166,7 @@ trait FileId {
 		};
 		return $anonymous->setClient($this);
 	}
-	public function to_file_id(FileIdType $file_type,int $dc_id,object $input_location,int $version = 4,int $sub_version = 54) : string {
+	protected function to_file_id(FileType $file_type,int $dc_id,#[Type('InputFileLocation')] Instance $input_location,int $version = 4,int $sub_version = 54) : string {
 		$type = $file_type->toId();
 		if(isset($input_location->file_reference)):
 			$type |= self::FILE_REFERENCE_FLAG;

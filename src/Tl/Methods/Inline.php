@@ -12,7 +12,7 @@ trait Inline {
 				$array = array_filter($results->results,fn(object $result) : bool => $result->id === $id);
 				$result = reset($array);
 			elseif(is_null($type) === false):
-				$array = array_filter($results->results,fn(object $result) : bool => $result->type === $type);
+				$array = array_values(array_filter($results->results,fn(object $result) : bool => $result->type === $type));
 				$result = is_null($index) ? reset($array) : $array[$index];
 			elseif(is_null($index) === false):
 				$result = $results->results[$index];

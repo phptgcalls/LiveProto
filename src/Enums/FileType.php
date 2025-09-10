@@ -5,7 +5,7 @@ declare(strict_types = 1);
 namespace Tak\Liveproto\Enums;
 
 # https://github.com/tdlib/td/blob/master/td/telegram/files/FileType.h #
-enum FileIdType : string {
+enum FileType : string {
 	case THUMBNAIL = 'thumbnail';
 	case PROFILE_PHOTO = 'profile_photo';
 	case PHOTO = 'photo';
@@ -35,7 +35,7 @@ enum FileIdType : string {
 	case SIZE = 'size';
 
 	static public function fromId(int $id) : self {
-		return self::cases()[$id] ?? throw new \InvalidArgumentException('Invalid FileIdType ID !');
+		return self::cases()[$id] ?? throw new \InvalidArgumentException('Invalid FileType ID !');
 	}
 	public function toId() : int {
 		return array_search($this,self::cases());

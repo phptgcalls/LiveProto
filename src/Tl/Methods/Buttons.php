@@ -6,8 +6,10 @@ namespace Tak\Liveproto\Tl\Methods;
 
 use Tak\Liveproto\Crypto\Password;
 
+use Tak\Liveproto\Attributes\Type;
+
 trait Buttons {
-	public function click_button(object $message,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null,? string $password = null,? array $contact = null,? array $geo = null,string | int | null | object $user = null) : mixed {
+	protected function click_button(#[Type('Message')] object $message,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null,? string $password = null,? array $contact = null,? array $geo = null,string | int | null | object $user = null) : mixed {
 		if($message instanceof \Tak\Liveproto\Tl\Types\Other\Message):
 			if(is_object($message->reply_markup)):
 				$button = $this->get_button($message->reply_markup,$i,$j,$text,$data,$query,$filter);
@@ -85,7 +87,7 @@ trait Buttons {
 			throw new \InvalidArgumentException('The message is invalid !');
 		endif;
 	}
-	public function get_button(object $reply_markup,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null) : object {
+	protected function get_button(#[Type('ReplyMarkup')] object $reply_markup,? int $i = null,? int $j = null,? string $text = null,? string $data = null,? string $query = null,? callable $filter = null) : object {
 		$index = (is_null($i) === false and is_null($j)) ? $i : null;
 		$x = 0;
 		$y = 0;

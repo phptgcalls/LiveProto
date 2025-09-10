@@ -20,6 +20,8 @@ use Tak\Liveproto\Tl\Methods\FileId;
 
 use Tak\Liveproto\Tl\Methods\Inline;
 
+use Tak\Liveproto\Tl\Methods\Media;
+
 use Tak\Liveproto\Tl\Methods\Peers;
 
 use Tak\Liveproto\Tl\Methods\SecretChat;
@@ -32,6 +34,8 @@ use Tak\Liveproto\Tl\Methods\Utilities;
 
 use Tak\Liveproto\Errors\RpcError;
 
+use Tak\Attributes\AttributesEngine;
+
 use function Amp\async;
 
 use function Amp\delay;
@@ -39,6 +43,12 @@ use function Amp\delay;
 use function Amp\Future\await;
 
 abstract class Caller {
+	use AttributesEngine {
+		__set as attrSet;
+		__get as attrGet;
+		__call as attrCall;
+	}
+
 	protected ? object $dhConfig = null;
 	protected array $peersType = array();
 	protected array $peersId = array();
@@ -52,18 +62,34 @@ abstract class Caller {
 	use Entities;
 	use FileId;
 	use Inline;
+	use Media;
 	use Peers;
 	use SecretChat;
 	use Upload;
 	use Users;
 	use Utilities;
 
-	public function __get(string $property) : object {
-		return new Properties($this,$property);
+	public function __set(string $property,mixed $value) : void {
+		if(property_exists($this,$property)):
+			$this->attrSet($property,$value);
+		else:
+			throw new \Error('Property '.$property.' does not exist');
+		endif;
+	}
+	public function __get(string $property) : mixed {
+		if(property_exists($this,$property)):
+			return $this->attrGet($property);
+		else:
+			return new Properties($this,$property);
+		endif;
 	}
 	public function __call(string $name,array $arguments) : mixed {
-		$other = new Properties($this,'other');
-		return $other->$name(...$arguments);
+		if(method_exists($this,$name)):
+			return $this->attrCall($name,$arguments);
+		else:
+			$other = new Properties($this);
+			return $other->$name(...$arguments);
+		endif;
 	}
 	public function __invoke(string $request,array $arguments) : mixed {
 		$split = explode(str_contains($request,chr(46)) ? chr(46) : chr(47),$request);
@@ -82,7 +108,7 @@ abstract class Caller {
 }
 
 final class Properties {
-	public function __construct(private readonly object $parent,private readonly string $property){
+	public function __construct(private readonly object $parent,private readonly string $property = 'other'){
 	}
 	public function __get(string $property) : mixed {
 		if(property_exists($this->parent,$property)):
@@ -103,9 +129,26 @@ final class Properties {
 			else:
 				$responses = false;
 			endif;
+			if(isset($arguments['queued'])):
+				$queued = boolval($arguments['queued']);
+				unset($arguments['queued']);
+			else:
+				$queued = false;
+			endif;
 			$processes = array();
-			foreach($arguments as $argument):
-				$processes []= async(fn(string $method) : mixed => call_user_func($method,$name,$argument + ['response'=>$responses]),__METHOD__);
+			$lastMessageId = null;
+			foreach($arguments as $i => $argument):
+				if($queued === true):
+					if(is_null($lastMessageId) === false):
+						$argument += ['afterid'=>$lastMessageId];
+					endif;
+					$lastMessageId = $this->session->getNewMsgId();
+					$argument += ['messageid'=>$lastMessageId];
+				endif;
+				if($responses === false):
+					$argument += ['response'=>$responses];
+				endif;
+				$processes []= async(fn(string $method) : mixed => call_user_func($method,$name,$argument),__METHOD__);
 			endforeach;
 			$results = await($processes);
 			ksort($results);
@@ -129,16 +172,22 @@ final class Properties {
 					'func'=>floatval(...),
 					'default'=>0
 				],
-				/*
+				'messageid'=>[
+					'func'=>intval(...),
+					'default'=>null
+				],
+				'identifier'=>[
+					'func'=>null,
+					'default'=>null
+				],
 				'extra'=>[
 					'func'=>null,
-					'default'=>null // IDK but it's must be have a value... why ?!?
-				],
-				*/
+					'default'=>null
+				]
 			];
 			$filtered = array();
 			foreach($parameters as $key => $value):
-				if(isset($arguments[$key])):
+				if(array_key_exists($key,$arguments)):
 					$filtered[$key] = is_null($value['func']) ? $arguments[$key] : call_user_func($value['func'],$arguments[$key]);
 					unset($arguments[$key]);
 				else:
@@ -168,10 +217,11 @@ final class Properties {
 			endif;
 			if(isset($arguments['afterid'])):
 				if(is_int($arguments['afterid'])):
+					$afterid = intval($arguments['afterid']);
 					unset($arguments['afterid']);
 					$arguments['raw'] = true;
 					$request = call_user_func(__METHOD__,$name,$arguments);
-					return $this->parent->invokeAfterMsg($this->afterid,$request,...$filtered);
+					return $this->parent->invokeAfterMsg($afterid,$request,...$filtered);
 				else:
 					unset($arguments['afterid']);
 				endif;
@@ -181,7 +231,7 @@ final class Properties {
 				return $request;
 			else:
 				$binary = $request->stream();
-				$this->sender->send($binary);
+				$this->sender->send($binary,$messageid,$identifier);
 				try {
 					$result = $response ? $this->sender->receive($binary,$timeout) : new \stdClass;
 				} catch(RpcError $error){
@@ -194,7 +244,9 @@ final class Properties {
 						throw $error;
 					endif;
 				}
-				// if(is_null($extra) === false) $result->extra = $extra;
+				if(is_null($extra) === false):
+					$result->extra = $extra;
+				endif;
 				return $result;
 			endif;
 		elseif($class = $this->createObject('Tak\\Liveproto\\Tl\\Types\\'.ucfirst($this->property).'\\'.ucfirst($name))):

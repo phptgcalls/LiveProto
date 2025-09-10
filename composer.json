@@ -9,6 +9,8 @@
         "api",
         "php",
         "liveproto",
+        "live",
+        "proto",
         "telegram-client",
         "mtproto",
         "async"
@@ -29,7 +31,8 @@
     ],
     "minimum-stability": "beta",
     "require": {
-        "php": ">=8.2",
+        "php-64bit": ">=8.2",
+        "ext-openssl": "*",
         "ext-gmp": "*",
         "ext-json": "*",
         "ext-xml": "*",
@@ -44,6 +47,7 @@
         "amphp/file": "^3.2.0",
         "amphp/mysql": "^3",
         "phpseclib/phpseclib": "^3.0.46",
-        "taknone/bootstrapper": "*"
+        "taknone/bootstrapper": "*",
+        "taknone/attributes": "*"
     }
 }

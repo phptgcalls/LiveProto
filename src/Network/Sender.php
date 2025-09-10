@@ -8,6 +8,10 @@ use Tak\Liveproto\Crypto\Aes;
 
 use Tak\Liveproto\Errors\RpcError;
 
+use Tak\Liveproto\Errors\Security;
+
+use Tak\Liveproto\Errors\TransportError;
+
 use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Helper;
@@ -28,6 +32,8 @@ use Amp\Sync\LocalMutex;
 
 use Revolt\EventLoop;
 
+use Throwable;
+
 final class Sender {
 	private readonly object $load;
 	private array $msgIds = array();
@@ -42,6 +48,7 @@ final class Sender {
 
 	public function __construct(protected object $transport,private readonly object $session,private object $handler){
 		$this->load = $session->load();
+		$session->reset();
 		$this->receiveLoop = strval(null);
 		$this->receiveLoop = EventLoop::defer($this->receivePacket(...));
 		EventLoop::setErrorHandler($this->errors(...));
@@ -49,8 +56,8 @@ final class Sender {
 	public function objectHash(object $class) : string {
 		return md5(spl_object_hash($class));
 	}
-	public function send(Binary $request) : void {
-		EventLoop::queue($this->sendPacket(...),request : $request);
+	public function send(Binary $request,mixed ...$arguments) : void {
+		EventLoop::queue($this->sendPacket(...),$request,...$arguments);
 	}
 	# https://core.telegram.org/mtproto/service_messages_about_messages#acknowledgment-of-receipt #
 	public function sendAcknowledgement() : void {
@@ -58,14 +65,14 @@ final class Sender {
 		$elapsed = intval(time() - $this->lastAckTime);
 		if($acks and (count($acks) >= 0x10 or (60 <= $elapsed and $elapsed <= 120))):
 			$msgAck = new \Tak\Liveproto\Tl\Types\Other\MsgsAck(['msg_ids'=>$acks]);
-			EventLoop::queue($this->sendPacket(...),request : $msgAck->stream());
+			$this->send(request : $msgAck->stream());
 			$this->pendingAcks = array();
 			$this->lastAckTime = time();
 		endif;
 	}
-	public function sendPacket(Binary $request,? int $messageId = null,mixed $identifier = null) : void {
+	public function sendPacket(Binary $request,? int $messageId = null,mixed $identifier = null,bool $contentRelated = true) : void {
 		$message_id = is_null($messageId) ? $this->session->getNewMsgId() : $messageId;
-		$data = $this->composePlainMessage(request : $request,salt : $this->load->salt,session_id : $this->load->id,message_id : $message_id,sequence : $this->session->generateSequence());
+		$data = $this->composePlainMessage(request : $request,salt : $this->load->salt,session_id : $this->load->id,message_id : $message_id,sequence : $this->session->generateSequence($contentRelated));
 		$message = $this->encryptMTProtoMessage(data : $data,version : 2);
 		$this->msgIds[$this->objectHash($request)] = $message_id;
 		if(is_null($identifier) === false):
@@ -81,7 +88,22 @@ final class Sender {
 		$plainWriter->writeLong($message_id);
 		$plainWriter->writeInt($sequence);
 		$packet = $request->read();
-		$plainWriter->writeInt(strlen($packet));
+		$packetLength = strlen($packet);
+		# gzip_packed#3072cfa1 packed_data:string = Object; #
+		if($packetLength > 512 and boolval($sequence % 2 === 1)):
+			$gzip = new Binary();
+			$gzip->writeInt(0x3072cfa1);
+			$gzip->writeBytes(gzencode($packet));
+			$compressed = $gzip->read();
+			$compressedLength = strlen($compressed);
+			if($packetLength > $compressedLength):
+				Logging::log('Gzip','compressed size : '.$compressedLength.' , using compressed payload ( saves '.intval($packetLength - $compressedLength).' bytes )',0);
+				$plainWriter->writeInt($compressedLength);
+				$plainWriter->write($compressed);
+				return $plainWriter->read();
+			endif;
+		endif;
+		$plainWriter->writeInt($packetLength);
 		$plainWriter->write($packet);
 		return $plainWriter->read();
 	}
@@ -107,11 +129,10 @@ final class Sender {
 		return $cipherWriter->read();
 	}
 	# https://core.telegram.org/api/pfs#related-articles #
-	public function bindTempAuthKey(self $sender,int $temp_auth_key_id,int $temp_session_id,int $expires_at) : bool {
+	public function bindTempAuthKey(self $sender,int $temp_auth_key_id,int $temp_session_id,int $expires_at,int $try = 3) : bool {
 		$nonce = Helper::generateRandomLong();
 		$authKeyInner = new \Tak\Liveproto\Tl\Types\Other\BindAuthKeyInner(['nonce'=>$nonce,'temp_auth_key_id'=>$temp_auth_key_id,'perm_auth_key_id'=>$this->load->auth_key->id,'temp_session_id'=>$temp_session_id,'expires_at'=>$expires_at]);
 		$bindInner = $authKeyInner->stream();
-		$try = 3;
 		do {
 			try {
 				$message_id = $this->session->getNewMsgId();
@@ -128,7 +149,7 @@ final class Sender {
 				$try--;
 			}
 		} while($try > 0 and $code == 400);
-		throw new RuntimeException('Failed to create a temporary client !');
+		throw new \RuntimeException('Failed to create a temporary client !');
 	}
 	public function receive(Binary $request,float $timeout) : mixed {
 		$deferred = new DeferredFuture();
@@ -190,7 +211,11 @@ final class Sender {
 					$this->receivedLoop();
 				};
 				EventLoop::queue($closure,$body);
-			} catch(\Throwable $error){
+			} catch(Security $error){
+				Logging::log('Security',$error->getMessage(),E_NOTICE);
+			} catch(TransportError $error){
+				Logging::log('Transport Error',$error->getMessage(),E_ERROR);
+			} catch(Throwable $error){
 				Logging::log('Receive Packet',$error->getMessage(),E_WARNING);
 				$this->ping();
 			}
@@ -279,9 +304,9 @@ final class Sender {
 		elseif($constructorId == 0x3072cfa1):
 			$packed_data = $reader->readBytes();
 			$unpacked = gzdecode($packed_data);
-			$reader = new Binary();
-			$reader->write($unpacked);
-			$this->processMessage($messageId,$sequence,$reader);
+			$gzip = new Binary();
+			$gzip->write($unpacked);
+			$this->processMessage($messageId,$sequence,$gzip);
 			return;
 		# msgs_ack#62d6b459 msg_ids:Vector<long> = MsgsAck; #
 		elseif($constructorId == 0x62d6b459):
@@ -347,9 +372,9 @@ final class Sender {
 				elseif($error_code == 18):
 					$this->load['sequence'] = ceil($this->load['sequence'] / 4) * 4;
 				elseif($error_code == 32):
-					$this->load['sequence'] += 64;
+					$this->load['sequence'] += 128;
 				elseif($error_code == 33):
-					$this->load['sequence'] -= 16;
+					$this->load['sequence'] -= 32;
 				elseif(in_array($error_code,array(34,35))):
 					$this->load['sequence'] += 1;
 				else:
@@ -419,27 +444,22 @@ final class Sender {
 		$this->pendingAcks []= $messageId;
 		$this->sendAcknowledgement();
 	}
-	public function destroy(int $session_id) : void {
+	public function destroySession(int $session_id) : object {
 		if(isset($this->receiveLoop) and $session_id !== 0):
 			$result = $this(raw : new \Tak\Liveproto\Tl\Functions\Other\DestroySession(['session_id'=>$session_id]),identifier : NonRpcResult::DESTROY_SESSION);
-			if($result instanceof \Tak\Liveproto\Tl\Types\Other\DestroySessionOk):
-				$this->session->reset(id : $session_id);
-				return;
-			endif;
 			Logging::log('Destroy Session','Session Id : '.$session_id.' , Result : '.$result->getClass(),0);
+			return $result;
 		endif;
-		$this->session->reset();
 	}
 	public function ping() : void {
 		if(isset($this->receiveLoop)):
 			$ping_id = random_int(PHP_INT_MIN,PHP_INT_MAX);
 			Logging::log('Live','Ping ...',0);
-			$raw = new \Tak\Liveproto\Tl\Functions\Other\PingDelayDisconnect(['ping_id'=>$ping_id,'disconnect_delay'=>75]);
-			$binary = $raw->stream();
-			$this->sendPacket(request : $binary);
+			$ping = new \Tak\Liveproto\Tl\Functions\Other\PingDelayDisconnect(['ping_id'=>$ping_id,'disconnect_delay'=>75]);
+			$this->sendPacket(request : $ping->stream());
 		endif;
 	}
-	public function errors(\Throwable $error) : never {
+	public function errors(Throwable $error) : never {
 		Logging::log('Sender',$error->getMessage(),E_ERROR);
 		throw $error;
 	}
@@ -449,7 +469,7 @@ final class Sender {
 	}
 	public function __invoke(object $raw,float $timeout = 10,mixed $identifier = null) : object {
 		$binary = $raw->stream();
-		$this->sendPacket(request : $binary,identifier : $identifier);
+		$this->send(request : $binary,identifier : $identifier);
 		return $this->receive(request : $binary,timeout : $timeout);
 	}
 	public function __destruct(){

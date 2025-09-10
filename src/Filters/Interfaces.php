@@ -141,6 +141,18 @@ final class Interfaces {
 					else:
 						return true;
 					endif;
+				case 'Tak\\Liveproto\\Filters\\Interfaces\\IsSuggest':
+					if($update->message instanceof \Tak\Liveproto\Tl\Types\Other\Message):
+						return boolval($update->message->suggested_post) === true;
+					else:
+						return false;
+					endif;
+				case 'Tak\\Liveproto\\Filters\\Interfaces\\IsNotSuggest':
+					if($update->message instanceof \Tak\Liveproto\Tl\Types\Other\Message):
+						return boolval($update->message->suggested_post) === false;
+					else:
+						return true;
+					endif;
 				case 'Tak\\Liveproto\\Filters\\Interfaces\\IsPinned':
 					if($update->message instanceof \Tak\Liveproto\Tl\Types\Other\Message):
 						return boolval($update->message->pinned) === true;

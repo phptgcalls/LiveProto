@@ -36,7 +36,7 @@ try {
 			if(isset($_POST['login_method'])){
 				if($_POST['login_method'] === 'token' and isset($_POST['token']) and str_contains($_POST['token'],chr(58))){
 					$token = trim($_POST['token']);
-					$this->sign_in(token : $token);
+					$this->sign_in(bot_token : $token);
 				} elseif($_POST['login_method'] === 'phone' and isset($_POST['phone']) and isset($_POST['country_code'])){
 					$phone_number = preg_replace('/[^\d]/',strval(null),$_POST['country_code'].$_POST['phone']);
 					$this->send_code(phone_number : $phone_number);

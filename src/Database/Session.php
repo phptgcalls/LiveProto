@@ -95,9 +95,9 @@ final class Session {
 					if(isFile($file) and getSize($file)):
 						$this->content = unserialize(gzinflate(base64_decode(read($file))))->setSession($this);
 					else:
-						$data = serialize($this->generate());
-						write($file,base64_encode(gzdeflate($data)));
-						$this->content = unserialize($data)->setSession($this);
+						$content = $this->generate();
+						write($file,base64_encode(gzdeflate(serialize($content))));
+						$this->content = $content->setSession($this);
 					endif;
 					break;
 				case 'sqlite':
@@ -174,13 +174,34 @@ final class Session {
 	public function getServerTime() : float {
 		return floatval(microtime(true) + $this->content['time_offset']);
 	}
+	public function updateTimeOffset(int $msgId) : void {
+		$old = $this->content['time_offset'];
+		$now = microtime(true);
+		$sec = $msgId >> 32;
+		$frac = $msgId & 0xFFFFFFFF;
+		$correct = $sec + round(1e9 * ($frac / (1 << 32)),3);
+		$new = $correct - $now;
+		$this->content['time_offset'] = $new;
+		/*
+		# Smoothing to avoid jumps (exponential moving average) #
+		$alpha = 0.25;
+		$this->content['time_offset'] = ($old * (1 - $alpha)) + ($new * $alpha);
+		*/
+		if($new !== $old):
+			$this->content['last_msg_id'] = 0;
+		endif;
+	}
 	public function getNewMsgId() : int {
 		$now = $this->getServerTime();
-		$nanoseconds = intval(($now - intval($now)) * 1e9);
-		$newMsgId = (intval($now) << 32) | ($nanoseconds << 2);
-		if($this->content['last_msg_id'] >= $newMsgId) $newMsgId = $this->content['last_msg_id'] + 4;
-		$this->content['last_msg_id'] = $newMsgId;
-		return $newMsgId;
+		$frac = intval(1e9 * ($now - floor($now)));
+		$msgId = intval(intval(floor($now)) << 32) + $frac;
+		$msgId = $msgId & (~ 0x3);
+		$msgId = boolval($msgId <= $this->content['last_msg_id']) ? $this->content['last_msg_id'] + 4 : $msgId;
+		while(($msgId & 0xFFFFFFFF) === 0):
+			$msgId += 4;
+		endwhile;
+		$this->content['last_msg_id'] = $msgId;
+		return $msgId;
 	}
 	public function generateSequence(bool $contentRelated = true) : int {
 		if($contentRelated):
@@ -190,17 +211,6 @@ final class Session {
 		else:
 			return $this->content['sequence'] * 2;
 		endif;
-	}
-	public function updateTimeOffset(int $correctMsgId) : int {
-		$old = $this->content['time_offset'];
-		$now = time();
-		$correct = $correctMsgId >> 32;
-		$new = $correct - $now;
-		$this->content['time_offset'] = $new;
-		if($new !== $old):
-			$this->content['last_msg_id'] = 0;
-		endif;
-		return $this->content['time_offset'];
 	}
 	public function getStringSession() : string {
 		$session = clone $this;

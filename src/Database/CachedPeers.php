@@ -52,6 +52,9 @@ final class CachedPeers {
 			$this->datas[$type] = array_filter($this->datas[$type],fn(array $row) : bool => $row[$by] !== $what);
 		endif;
 	}
+	public function __debugInfo() : array {
+		return array('peers'=>$this->datas);
+	}
 	public function __sleep() : array {
 		return array('name','datas');
 	}

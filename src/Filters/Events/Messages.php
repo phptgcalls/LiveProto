@@ -125,13 +125,21 @@ final class Messages extends Filter {
 				return $event->getClient()->click_button($event->message,...$args);
 			endif;
 		};
+		$event->resolveSuggestion = function(mixed ...$args) use($event) : mixed {
+			if($event->message->suggested_post === null):
+				throw new \Exception('The message is not a suggested post');
+			else:
+				$peer = $event->getPeer();
+				return $event->getClient()->messages->toggleSuggestedPostApproval($peer,$event->message->id,...$args);
+			endif;
+		};
 		$event->message->format = function() use($event) : array {
 			return $event->getClient()->format_entities($event->message->message,$event->message->entities);
 		};
-		$event->message->type = match(true){
-			$event->message->peer_id instanceof \Tak\Liveproto\Tl\Types\Other\PeerChannel => ($event->message->post ? 'channel' : 'supergroup'),
-			$event->message->peer_id instanceof \Tak\Liveproto\Tl\Types\Other\PeerUser => 'private',
-			$event->message->peer_id instanceof \Tak\Liveproto\Tl\Types\Other\PeerChat => 'group',
+		$event->message->type = match($event->message->peer_id?->getClass()){
+			'peerChannel' => ($event->message->post ? 'channel' : 'supergroup'),
+			'peerUser' => 'private',
+			'peerChat' => 'group',
 			default => $event->get_peer_type($event->message->peer_id)->getChatType()
 		};
 		unset($event->addBoundMethods);

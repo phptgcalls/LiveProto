@@ -13,7 +13,7 @@ trait Peers {
 	private const MAX_MONOFORUM_CHANNEL_ID = - (1 << 31) - 1 - 2000000000000;
 	private const MIN_SECRET_CHAT_ID = - (1 << 31) - 2000000000000;
 
-	public function get_input_peer(string | int | null | object $peer,int $hash = 0) : mixed {
+	public function get_input_peer(string | int | null | object $peer,int $hash = 0) : object {
 		if(is_null($peer)):
 			return $this->inputPeerEmpty();
 		elseif(is_object($peer)):
@@ -24,8 +24,7 @@ trait Peers {
 			elseif(isset($peer->channel_id) and is_int($peer->channel_id)):
 				return $this->get_input_peer($peer->channel_id,$hash);
 			else:
-				# return $peer;
-				throw new \Exception('A valid peer id was not found in your object');
+				throw new \Error('A valid peer id was not found in your object');
 			endif;
 		elseif(is_string($peer)):
 			if(in_array($peer,array('me','bot'))):
@@ -141,6 +140,8 @@ trait Peers {
 					$info->megagroup => PeerType::MEGAGROUP,
 					$info->gigagroup => PeerType::GIGAGROUP
 				};
+			else:
+				$this->peersType[$hash] = PeerType::UNKNOWN;
 			endif;
 		endif;
 		return $this->peersType[$hash];

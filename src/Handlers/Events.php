@@ -46,6 +46,10 @@ use Tak\Liveproto\Filters\Interfaces\IsPost;
 
 use Tak\Liveproto\Filters\Interfaces\IsNotPost;
 
+use Tak\Liveproto\Filters\Interfaces\IsSuggest;
+
+use Tak\Liveproto\Filters\Interfaces\IsNotSuggest;
+
 use Tak\Liveproto\Filters\Interfaces\IsPinned;
 
 use Tak\Liveproto\Filters\Interfaces\IsNotPinned;
@@ -154,7 +158,7 @@ use Tak\Liveproto\Filters\Interfaces\Inline;
 
 use Tak\Liveproto\Filters\Interfaces\NotInline;
 
-final class Events extends Instance implements Outgoing , Incoming , IsMedia , IsNotMedia , IsReply , IsNotReply , IsViaBot , IsNotViaBot , IsEdited , IsNotEdited , IsHideEdited , IsNotHideEdited , IsQuickReply , IsNotQuickReply , IsMentioned , IsNotMentioned , IsSilent , IsNotSilent , IsPost , IsNotPost , IsPinned , IsNotPinned , IsForwarded , IsNotForwarded , IsBusiness , IsNotBusiness , IsPrivate , IsNotPrivate , IsGroup , IsNotGroup , IsSuperGroup , IsNotSuperGroup , IsChannel , IsNotChannel , IsBot , IsNotBot , IsSelf , IsNotSelf , HasEntity , HasNotEntity , HasReaction , HasNotReaction , HasReplyMarkup , HasNotReplyMarkup , HasPhoto , HasNotPhoto , HasGeo , HasNotGeo , HasContact , HasNotContact , HasDocument , HasNotDocument , HasWebPage , HasNotWebPage , HasVenue , HasNotVenue , HasGame , HasNotGame , HasInvoice , HasNotInvoice , HasGeoLive , HasNotGeoLive , HasPoll , HasNotPoll , HasDice , HasNotDice , HasStory , HasNotStory , Message , NotMessage , Callback , NotCallback , Inline , NotInline {
+final class Events extends Instance implements Outgoing , Incoming , IsMedia , IsNotMedia , IsReply , IsNotReply , IsViaBot , IsNotViaBot , IsEdited , IsNotEdited , IsHideEdited , IsNotHideEdited , IsQuickReply , IsNotQuickReply , IsMentioned , IsNotMentioned , IsSilent , IsNotSilent , IsPost , IsNotPost , IsSuggest , IsNotSuggest , IsPinned , IsNotPinned , IsForwarded , IsNotForwarded , IsBusiness , IsNotBusiness , IsPrivate , IsNotPrivate , IsGroup , IsNotGroup , IsSuperGroup , IsNotSuperGroup , IsChannel , IsNotChannel , IsBot , IsNotBot , IsSelf , IsNotSelf , HasEntity , HasNotEntity , HasReaction , HasNotReaction , HasReplyMarkup , HasNotReplyMarkup , HasPhoto , HasNotPhoto , HasGeo , HasNotGeo , HasContact , HasNotContact , HasDocument , HasNotDocument , HasWebPage , HasNotWebPage , HasVenue , HasNotVenue , HasGame , HasNotGame , HasInvoice , HasNotInvoice , HasGeoLive , HasNotGeoLive , HasPoll , HasNotPoll , HasDice , HasNotDice , HasStory , HasNotStory , Message , NotMessage , Callback , NotCallback , Inline , NotInline {
 	static public function copy(object $update) : object {
 		$event = $update->clone(__CLASS__);
 		$event->class = $update->getClass();

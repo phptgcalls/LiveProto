@@ -50,6 +50,7 @@ abstract class Tools {
 			'boolean' => 'BOOLEAN',
 			'object' , 'array' => 'LONGTEXT',
 			'integer' => 'BIGINT', // abs($data) > 0x7fffffff ? 'BIGINT' : 'INT' //
+			'double' => 'REAL',
 			'string' => 'TEXT', // mb_strlen($data) > 0xffff ? 'LONGTEXT' : 'TEXT' //
 			default => 'VARCHAR ('.mb_strlen($data).')'
 		};

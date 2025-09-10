@@ -62,7 +62,7 @@ final class Client extends Caller implements Stringable {
 			throw new \InvalidArgumentException('The `resourceName` and `storageDriver` parameters must both be null or both have string values');
 		endif;
 		new Logging($settings);
-		$this->locker = in_array($storageDriver,['text',null]) ? null : ($settings->getHotReload ? new SignalHandler($resourceName,$this) : new SessionLocker($resourceName));
+		$this->locker = in_array($storageDriver,['text',null]) ? null : ($settings->getHotReload() ? new SignalHandler($resourceName,$this) : new SessionLocker($resourceName));
 		$this->session = new Session($resourceName,$storageDriver,$settings);
 		$this->load = $this->session->load();
 		$this->handler = new Updates($this,$this->session);
@@ -179,7 +179,8 @@ final class Client extends Caller implements Stringable {
 		$availableClients = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->expires_at > 0 and $dcOption->id === $dc_id);
 		if($expires_in > 0 || empty($availableClients)):
 			Logging::log('Client','Try get temp ...',0);
-			$client = $this->switchDC(dc_id : $dc_id,expires_in : $expires_in);
+			$permanent = $this->switchDC(dc_id : $dc_id);
+			$client = $permanent->switchDC(dc_id : $dc_id,expires_in : $expires_in);
 			$reflection = new \ReflectionClass($client);
 			$temp = $reflection->getProperty('load')->getValue($client);
 			$sender = $reflection->getProperty('sender')->getValue($client);
@@ -239,7 +240,7 @@ final class Client extends Caller implements Stringable {
 			if($this->load->step === Authentication::NEED_AUTHENTICATION):
 				$input = Tools::readLine('Please enter your phone number ( Or your bot token , you can give it from @BotFather ) : ');
 				if(str_contains($input,chr(58))):
-					$this->sign_in(token : $input);
+					$this->sign_in(bot_token : $input);
 				else:
 					$this->send_code(phone_number : preg_replace('/[^\d]/',strval(null),$input));
 				endif;

@@ -14,6 +14,8 @@ use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Logging;
 
+use Tak\Liveproto\Attributes\Type;
+
 use function Amp\async;
 
 use function Amp\File\openFile;
@@ -23,25 +25,25 @@ use function Amp\File\isDirectory;
 use function Amp\File\move;
 
 trait Download {
-	public function download_file(string $path,int $size,int $dcid,object $location,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
+	protected function download_file(string $path,int $size,int $dc_id,#[Type('InputFileLocation')] $location,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
 		$stream = openFile($path,'wb');
 		$percent = 0;
 		$offset = 0;
 		$limit = $this->getChuckSize($size);
-		$client = $this->switchDC(dcid : $dcid,media : true);
+		$client = $this->switchDC(dc_id : $dc_id,media : true);
 		try {
 			$getFile = $client->upload->getFile(location : $location,offset : $offset,limit : $limit,cdn_supported : true,timeout : 10);
 		} catch(RpcError $error){
 			if($error->getCode() == 303):
-				$dcid = $error->getValue();
-				return $this->download_file($path,$size,$dcid,$location,$progresscallback,$key,$iv);
+				$dc_id = $error->getValue();
+				return $this->download_file($path,$size,$dc_id,$location,$progresscallback,$key,$iv);
 			else:
 				throw $error;
 			endif;
 		}
 		Logging::log('Download','Start downloading the '.basename($path).' file ...',0);
 		if($getFile instanceof \Tak\Liveproto\Tl\Types\Upload\FileCdnRedirect):
-			$client = $this->switchDC(dcid : $getFile->dc_id,cdn : true,media : true);
+			$client = $this->switchDC(dc_id : $getFile->dc_id,cdn : true,media : true);
 			while($size > $offset or $size <= 0):
 				$getCdnFile = $client->upload->getCdnFile(file_token : $getFile->file_token,offset : $offset,limit : $limit,timeout : 10);
 				if($getCdnFile instanceof \Tak\Liveproto\Tl\Types\Upload\CdnFileReuploadNeeded):
@@ -122,12 +124,13 @@ trait Download {
 			$file = $file->photo ? $file->photo : throw new \InvalidArgumentException('The message does not contain the photo property !');
 		endif;
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\Photo):
-			$dcid = $file->dc_id;
+			$dc_id = $file->dc_id;
 			$photoSize = end($file->sizes);
-			if($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize or $photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
-				return $this->photoCachedSize($path,$photoSize);
+			if($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize or $photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoPathSize or $photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
+				return $this->fetchCachedPhoto($path,$photoSize);
 			endif;
-			list($type,$size) = $this->getPhotoSize($photoSize);
+			$type = $photoSize->type;
+			$size = $this->getPhotoSize($photoSize);
 			$location = $this->inputPhotoFileLocation(id : $file->id,access_hash : $file->access_hash,file_reference : $file->file_reference,thumb_size : $type);
 			if(isDirectory($path)):
 				$path = $path.DIRECTORY_SEPARATOR.strval($file->id);
@@ -135,19 +138,19 @@ trait Download {
 		else:
 			throw new \InvalidArgumentException('Your media does not contain photo !');
 		endif;
-		return $this->download_file($path,$size,$dcid,$location,$progresscallback,$key,$iv);
+		return $this->download_file($path,$size,$dc_id,$location,$progresscallback,$key,$iv);
 	}
 	public function download_profile_photo(string $path,object $file,bool $big = true,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\User or $file instanceof \Tak\Liveproto\Tl\Types\Other\Chat or $file instanceof \Tak\Liveproto\Tl\Types\Other\Channel):
 			$size = PHP_INT_MAX;
 			$peer = $this->get_input_peer($file->id);
 			$photo = $file->photo ? $file->photo : throw new \InvalidArgumentException('The user does not contain the photo property !');
-			$dcid = $photo->dc_id;
+			$dc_id = $photo->dc_id;
 			$location = $this->inputPeerPhotoFileLocation(peer : $peer,photo_id : $photo->photo_id,big : ($big ? true : null));
 			if(isDirectory($path)):
 				$path = $path.DIRECTORY_SEPARATOR.strval($photo->photo_id);
 			endif;
-			return $this->download_file($path,$size,$dcid,$location,$progresscallback,$key,$iv);
+			return $this->download_file($path,$size,$dc_id,$location,$progresscallback,$key,$iv);
 		elseif($file instanceof \Tak\Liveproto\Tl\Types\Other\UserFull):
 			$photo = $file->profile_photo ? $file->profile_photo : throw new \InvalidArgumentException('The user does not contain the profile photo property !');
 			if($big) $photo = $this->photoCachedIgnore($photo);
@@ -165,17 +168,18 @@ trait Download {
 			$file = $file->document ? $file->document : throw new \InvalidArgumentException('The message does not contain the document property !');
 		endif;
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\Document):
-			$dcid = $file->dc_id;
+			$dc_id = $file->dc_id;
 			$size = $file->size;
 			if($file->thumbs === null or $thumb === false):
 				$type = strval(null);
 			else:
 				$file->mime_type = 'image/png';
 				$thumb = end($file->thumbs);
-				if($thumb instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize or $thumb instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
-					return $this->photoCachedSize($path,$thumb);
+				if($thumb instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize or $thumb instanceof \Tak\Liveproto\Tl\Types\Other\PhotoPathSize or $thumb instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
+					return $this->fetchCachedPhoto($path,$thumb);
 				endif;
-				list($type,$size) = $this->getPhotoSize($thumb);
+				$type = $thumb->type;
+				$size = $this->getPhotoSize($thumb);
 			endif;
 			$location = $this->inputDocumentFileLocation(id : $file->id,access_hash : $file->access_hash,file_reference : $file->file_reference,thumb_size : $type);
 			if(isDirectory($path)):
@@ -190,7 +194,7 @@ trait Download {
 		else:
 			throw new \InvalidArgumentException('Your media does not contain document !');
 		endif;
-		return $this->download_file($path,$size,$dcid,$location,$progresscallback,$key,$iv);
+		return $this->download_file($path,$size,$dc_id,$location,$progresscallback,$key,$iv);
 	}
 	public function download_web_document(string $path,object $file) : string {
 		if(isset($file->photo)):
@@ -271,9 +275,9 @@ trait Download {
 					throw new \LogicException('Invalid key fingerprint !');
 				endif;
 				$size = $file->size;
-				$dcid = $file->dc_id;
+				$dc_id = $file->dc_id;
 				$location = $this->inputEncryptedFileLocation(id : $file->id,access_hash : $file->access_hash);
-				return $this->download_file($path,$size,$dcid,$location,$progresscallback,$key,$iv);
+				return $this->download_file($path,$size,$dc_id,$location,$progresscallback,$key,$iv);
 			else:
 				throw new \InvalidArgumentException('The value of key and iv arguments should not be null !');
 			endif;
@@ -301,35 +305,24 @@ trait Download {
 			throw new \InvalidArgumentException('Invalid input media !');
 		}
 	}
-	private function getPhotoSize(object $photoSize) : array {
-		if($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoSizeEmpty):
-			return array($photoSize->type,0);
-		elseif($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoSize):
-			return array($photoSize->type,$photoSize->size);
-		elseif($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
-			return array($photoSize->type,strlen($photoSize->bytes));
-		elseif($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoSizeProgressive):
-			return array($photoSize->type,max($photoSize->sizes));
-		elseif($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoPathSize):
-			return array($photoSize->type,strlen($photoSize->bytes));
-		elseif($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize):
-			if(strlen($photoSize->bytes) < 3 or substr($photoSize->bytes,0,1) != 1):
-				return array($photoSize->type,strlen($photoSize->bytes));
-			else:
-				return array($photoSize->type,strlen($photoSize->bytes) + 0x26e);
-			endif;
-		else:
-			throw new \InvalidArgumentException('Unknown photoSize !');
-		endif;
+	protected function getPhotoSize(#[Type('PhotoSize')] object $photoSize) : int {
+		return match($photoSize->getClass()){
+			'photoSizeEmpty' => 0,
+			'photoSize' => $photoSize->size,
+			'photoSizeProgressive' => max($photoSize->sizes),
+			'photoCachedSize' => strlen($photoSize->bytes),
+			'photoPathSize' => strlen($this->decode_vector_thumbnail($photoSize->bytes)),
+			'photoStrippedSize' => strlen($this->get_stripped_thumbnail($photoSize->bytes)),
+			default => throw new \InvalidArgumentException('Unknown photoSize !')
+		};
 	}
-	public function photoCachedSize(string $path,object $photoSize) : string {
-		if($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize):
-			$bytes = $this->getPhotoStrippedJpg($photoSize->bytes);
-		elseif($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
-			$bytes = $photoSize->bytes;
-		else:
-			throw new \InvalidArgumentException('Invalid photoSize !');
-		endif;
+	protected function fetchCachedPhoto(string $path,#[Type('PhotoSize')] object $photoSize) : string {
+		$bytes = match($photoSize->getClass()){
+			'photoStrippedSize' => $this->get_stripped_thumbnail($photoSize->bytes),
+			'photoPathSize' => $this->decode_vector_thumbnail($photoSize->bytes),
+			'photoCachedSize' => $photoSize->bytes,
+			default => throw new \InvalidArgumentException('Invalid photoSize for get cache of it !')
+		};
 		if(isDirectory($path)):
 			$path = $path.DIRECTORY_SEPARATOR.md5($bytes);
 		endif;
@@ -341,21 +334,10 @@ trait Download {
 		$stream->close();
 		return $path;
 	}
-	public function getPhotoStrippedJpg(string $stripped) : string {
-		if(strlen($stripped) < 3 or substr($stripped,0,1) !== chr(1)):
-			return $stripped;
-		else:
-			$header = "\xff\xd8\xff\xe0\x00\x10\x4a\x46\x49\x46\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00\x43\x00\x28\x1c\x1e\x23\x1e\x19\x28\x23\x21\x23\x2d\x2b\x28\x30\x3c\x64\x41\x3c\x37\x37\x3c\x7b\x58\x5d\x49\x64\x91\x80\x99\x96\x8f\x80\x8c\x8a\xa0\xb4\xe6\xc3\xa0\xaa\xda\xad\x8a\x8c\xc8\xff\xcb\xda\xee\xf5\xff\xff\xff\x9b\xc1\xff\xff\xff\xfa\xff\xe6\xfd\xff\xf8\xff\xdb\x00\x43\x01\x2b\x2d\x2d\x3c\x35\x3c\x76\x41\x41\x76\xf8\xa5\x8c\xa5\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xf8\xff\xc0\x00\x11\x08\x00\x00\x00\x00\x03\x01\x22\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\xff\xc4\x00\xb5\x10\x00\x02\x01\x03\x03\x02\x04\x03\x05\x05\x04\x04\x00\x00\x01\x7d\x01\x02\x03\x00\x04\x11\x05\x12\x21\x31\x41\x06\x13\x51\x61\x07\x22\x71\x14\x32\x81\x91\xa1\x08\x23\x42\xb1\xc1\x15\x52\xd1\xf0\x24\x33\x62\x72\x82\x09\x0a\x16\x17\x18\x19\x1a\x25\x26\x27\x28\x29\x2a\x34\x35\x36\x37\x38\x39\x3a\x43\x44\x45\x46\x47\x48\x49\x4a\x53\x54\x55\x56\x57\x58\x59\x5a\x63\x64\x65\x66\x67\x68\x69\x6a\x73\x74\x75\x76\x77\x78\x79\x7a\x83\x84\x85\x86\x87\x88\x89\x8a\x92\x93\x94\x95\x96\x97\x98\x99\x9a\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xff\xc4\x00\x1f\x01\x00\x03\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\xff\xc4\x00\xb5\x11\x00\x02\x01\x02\x04\x04\x03\x04\x07\x05\x04\x04\x00\x01\x02\x77\x00\x01\x02\x03\x11\x04\x05\x21\x31\x06\x12\x41\x51\x07\x61\x71\x13\x22\x32\x81\x08\x14\x42\x91\xa1\xb1\xc1\x09\x23\x33\x52\xf0\x15\x62\x72\xd1\x0a\x16\x24\x34\xe1\x25\xf1\x17\x18\x19\x1a\x26\x27\x28\x29\x2a\x35\x36\x37\x38\x39\x3a\x43\x44\x45\x46\x47\x48\x49\x4a\x53\x54\x55\x56\x57\x58\x59\x5a\x63\x64\x65\x66\x67\x68\x69\x6a\x73\x74\x75\x76\x77\x78\x79\x7a\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x92\x93\x94\x95\x96\x97\x98\x99\x9a\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xff\xda\x00\x0c\x03\x01\x00\x02\x11\x03\x11\x00\x3f\x00";
-			$footer = "\xff\xd9";
-			$header[164] = $stripped[1];
-			$header[166] = $stripped[2];
-			return $header.substr($stripped,3).$footer;
-		endif;
-	}
-	public function photoCachedIgnore(object $photo) : object {
+	protected function photoCachedIgnore(#[Type('Photo')] object $photo) : object {
 		while(isset($photo->sizes) and is_array($photo->sizes) and count($photo->sizes) > 1):
 			$photoSize = end($photo->sizes);
-			if($photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoStrippedSize or $photoSize instanceof \Tak\Liveproto\Tl\Types\Other\PhotoCachedSize):
+			if(in_array($photoSize->getClass(),array('photoCachedSize','photoStrippedSize'))):
 				array_pop($photo->sizes);
 			else:
 				break;

@@ -6,8 +6,14 @@ namespace Tak\Liveproto\Crypto;
 
 use Tak\Liveproto\Errors\Security;
 
+use Tak\Attributes\AttributesEngine;
+
+use Tak\Liveproto\Attributes\Type;
+
 final class Password {
-	public function srp(object $request,string $password) : object {
+	use AttributesEngine;
+
+	protected function srp(#[Type('account.Password')] object $request,string $password) : object {
 		$algo = $request->current_algo;
 		$g = $algo->g;
 		$p = gmp_import($algo->p);
@@ -31,7 +37,7 @@ final class Password {
 		$method = new \Tak\Liveproto\Tl\Types\Other\InputCheckPasswordSRP;
 		return $method->request(srp_id : $request->srp_id,A : $this->str($g_a),M1 : $m1);
 	}
-	public function digest(object $request,string $password) : string {
+	protected function digest(#[Type('account.Password')] object $request,string $password) : string {
 		$algo = $request->new_algo;
 		$g = $algo->g;
 		$p = gmp_import($algo->p);
@@ -58,14 +64,6 @@ final class Password {
 	}
 	private function xor(string $a,string $b) : string {
 		return $a ^ $b;
-		/*
-		$result = strval(null);
-		$length = min(strlen($a),strlen($b));
-		for($i = 0;$i < $length;$i++):
-			$result .= chr(ord($a[$i]) ^ ord($b[$i]));
-		endfor;
-		return $result;
-		*/
 	}
 }
 
