@@ -47,7 +47,7 @@
         "amphp/file": "^3.2.0",
         "amphp/mysql": "^3",
         "phpseclib/phpseclib": "^3.0.46",
-        "taknone/bootstrapper": "*",
-        "taknone/attributes": "*"
+        "taknone/attributes": "*",
+        "taknone/bootstrapper": "*"
     }
 }
