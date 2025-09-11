@@ -83,9 +83,15 @@ try {
 
 ---
 
+## 💬 Community & Chat
+Join the project community :
+- Chat ( Telegram ): https://t.me/LiveProtoChat
+- News ( Telegram channel ): https://t.me/LiveProto
+- Snippets ( Telegram ): https://t.me/LiveProtoSnippets
+
 ## 🎓 Documentation
 
-Visit [docs LiveProto](https://docs.LiveProto.dev)
+Visit [docs LiveProto](https://docs.LiveProto.dev) and [TL LiveProto](https://tl.LiveProto.dev)
 
 ## 📜 License
 
