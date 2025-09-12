@@ -1,15 +1,18 @@
 # LiveProto
 
-An **async** , **pure-PHP** MTProto Telegram client library , offering full protocol support without any native extensions
+<p>
+  <img src = "docs/_images/logo.svg" alt = "logo" style = "vertical-align : middle; width : 24px; height : 24px;"/>
+  An <strong>async</strong> , <strong>Pure-PHP</strong> MTProto Telegram client library for both <em>bot</em> & <em>user account</em> handling
+</p>
 
 ---
 
 ## 🚀 Features
 
-* **Full MTProto Protocol :** Complete implementation of Telegram's low-level protocol
-* **Asynchronous I/O :** Built with PHP 8's async primitives (Fibers/Amp), enabling non-blocking requests
-* **Session Management :** Automatic key exchange, session storage, and reconnection logic
-* **Comprehensive API Coverage :** Send and receive messages, manage chats and channels, handle updates, upload/download media, and more
+* **Full MTProto Protocol** : Complete implementation of Telegram's low-level protocol
+* **Asynchronous I/O** : Built with PHP 8's async primitives (Fibers/Amp), enabling non-blocking requests
+* **Session Management** : Automatic key exchange, session storage, and reconnection logic
+* **Comprehensive API Coverage** : Send and receive messages, manage chats and channels, handle updates, upload/download media, and more
 
 ---
 
@@ -50,7 +53,14 @@ Example Usage :
 ```php
 <?php
 
-require 'vendor/autoload.php';
+if(file_exists('vendor/autoload.php')):
+    require 'vendor/autoload.php';
+elseif(file_exists('liveproto.phar')):
+    require_once 'liveproto.phar';
+elseif(file_exists('liveproto.php') === false):
+    copy('https://installer.liveproto.dev/liveproto.php','liveproto.php');
+    require_once 'liveproto.php';
+endif;
 
 use Tak\Liveproto\Network\Client;
 
@@ -61,7 +71,7 @@ $settings->setApiId(21724);
 $settings->setApiHash('3e0cb5efcd52300aec5994fdfc5bdc16');
 $settings->setHideLog(false);
 
-$client = new Client('test','string',$settings);
+$client = new Client('test',' sqlite',$settings);
 
 $client->connect();
 
@@ -85,13 +95,13 @@ try {
 
 ## 💬 Community & Chat
 Join the project community :
-- Chat ( Telegram ): https://t.me/LiveProtoChat
-- News ( Telegram channel ): https://t.me/LiveProto
-- Snippets ( Telegram ): https://t.me/LiveProtoSnippets
+- Chat ( Telegram ) : https://t.me/LiveProtoChat
+- News ( Telegram channel ) : https://t.me/LiveProto
+- Snippets ( Telegram ) : https://t.me/LiveProtoSnippets
 
 ## 🎓 Documentation
 
-Visit [docs LiveProto](https://docs.LiveProto.dev) and [TL LiveProto](https://tl.LiveProto.dev)
+Visit [Documentation LiveProto](https://docs.LiveProto.dev) and [TL LiveProto](https://tl.LiveProto.dev)
 
 ## 📜 License
 
