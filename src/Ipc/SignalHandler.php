@@ -57,7 +57,7 @@ final class SignalHandler {
 		if(is_null($reason) === false):
 			error_log('Stop : '.$reason);
 		endif;
-		$this->client->disconnect();
+		$this->client->stop();
 	}
 	public function restart(? string $reason = null) : void {
 		if(is_null($reason) === false):

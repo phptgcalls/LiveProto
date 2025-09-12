@@ -101,6 +101,7 @@ final class Session {
 					endif;
 					break;
 				case 'sqlite':
+					Tools::is_valid_sqlite_identifier_unicode($this->name) || throw new \InvalidArgumentException('resourceName : must start with a letter / _ and contain only Unicode letters / digits / _ / $ ( 1..64 chars ) !');
 					$path = empty($this->database) ? $this->name : $this->database;
 					$this->sqlite = new SQLite($path.'.db');
 					if($this->sqlite->init($this->name)):
@@ -113,6 +114,7 @@ final class Session {
 					$this->content->save(true);
 					break;
 				case 'mysql':
+					Tools::is_valid_mysql_identifier_unicode($this->name) || throw new \InvalidArgumentException('resourceName : must be 1..64 Unicode letters / digits / _ / $ and not composed only of digits !');
 					if(empty($this->server)):
 						throw new \Exception('Server parameter for mysql database is empty !');
 					elseif(empty($this->username)):

@@ -56,6 +56,24 @@ abstract class Tools {
 		};
 		return $type;
 	}
+	static public function is_valid_mysql_identifier_unicode(string $name) : bool {
+		/*
+		 * Unicode-aware MySQL validation :
+		 * Allows Unicode letters / digits ( using \p{L}\p{N} ), underscore and dollar sign
+		 * MySQL allows leading digit but identifier cannot be all digits
+		 * Max length 64 codepoints ( approx, MySQL stores identifiers in UTF-8, most deployments treat 64 characters )
+		 */
+		return boolval(preg_match('/^(?!^\d+$)[\p{L}\p{N}_\$]{1,64}$/u',$name));
+	}
+	static public function is_valid_sqlite_identifier_unicode(string $name) : bool {
+		/*
+		 * Unicode-aware SQLite validation ( unquoted-name style ):
+		 * Start with a Unicode letter or underscore
+		 * Then Unicode letters / digits / underscore / dollar
+		 * Max length 64
+		 */
+		return boolval(preg_match('/^[\p{L}_][\p{L}\p{N}_\$]{0,63}$/u',$name));
+	}
 	static public function base64_url_encode(string $string) : string {
 		return rtrim(strtr(base64_encode($string),chr(43).chr(47),chr(45).chr(95)),chr(61));
 	}
