@@ -10,7 +10,7 @@
 ## 🚀 Features
 
 * **Full MTProto Protocol** : Complete implementation of Telegram's low-level protocol
-* **Asynchronous I/O** : Built with PHP 8's async primitives (Fibers/Amp), enabling non-blocking requests
+* **Asynchronous I/O** : Built with PHP 8's async primitives ( Fibers / Amp ), enabling non-blocking requests
 * **Session Management** : Automatic key exchange, session storage, and reconnection logic
 * **Comprehensive API Coverage** : Send and receive messages, manage chats and channels, handle updates, upload/download media, and more
 
@@ -71,7 +71,7 @@ $settings->setApiId(21724);
 $settings->setApiHash('3e0cb5efcd52300aec5994fdfc5bdc16');
 $settings->setHideLog(false);
 
-$client = new Client('test',' sqlite',$settings);
+$client = new Client('testSession','sqlite',$settings);
 
 $client->connect();
 
@@ -101,7 +101,7 @@ Join the project community :
 
 ## 🎓 Documentation
 
-Visit [Documentation LiveProto](https://docs.LiveProto.dev) and [TL LiveProto](https://tl.LiveProto.dev)
+Visit [Docs LiveProto](https://docs.LiveProto.dev) and [TL LiveProto](https://tl.LiveProto.dev)
 
 ## 📜 License
 
