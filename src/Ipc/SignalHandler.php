@@ -58,6 +58,7 @@ final class SignalHandler {
 			error_log('Stop : '.$reason);
 		endif;
 		$this->client->stop();
+		die('The process was stopped');
 	}
 	public function restart(? string $reason = null) : void {
 		if(is_null($reason) === false):

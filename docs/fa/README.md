@@ -48,4 +48,4 @@
 
 ## جامعه
 
-کاربران و تیم توسعه معمولاً در [Telegram] هستند (en/https://t.me/LiveProtoChat)
+کاربران و تیم توسعه معمولاً در [تلگرام](https://t.me/LiveProtoChat) هستند

@@ -26,7 +26,7 @@ trait Entities {
 		];
 		$counter = 0;
 		$entities = [];
-		while($message = current($markdown)):
+		while(false !== ($message = current($markdown))):
 			if(key_exists($message,$signs)):
 				foreach(array_reverse($signs[$message]) as $possible):
 					for($i = 1;$i < $possible;$i++):
@@ -116,7 +116,6 @@ trait Entities {
 			next($markdown);
 			$counter++;
 		endwhile;
-		var_dump($entities);
 		foreach($entities as $indexone => $entityone):
 			foreach($entityone as $keyone => $valueone):
 				foreach($entities as $indextwo => $entitytwo):
@@ -223,7 +222,7 @@ trait Entities {
 		return array($length,$message,$entities);
 	}
 	public function html_escape(string $text) : string {
-		return str_replace(['<','>','&'],['&lt;','&gt;','&amp;'],$text);
+		return str_replace(['&','<','>'],['&amp;','&lt;','&gt;'],$text);
 	}
 	private function href(int $offset,int $length,string $href) : object {
 		if(preg_match('|^mention:(?<id>.+)|',$href,$matches) or preg_match('|^tg://user\\?id=(?<id>\d+)|',$href,$matches)):

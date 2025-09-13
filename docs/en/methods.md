@@ -268,7 +268,7 @@ Usable by :
 - [ ] Bots
 
 ##### <pre>Arguments</pre>
-- except_ids(<small>array&amp;lt;int&amp;gt;</small>) <kbd onclick = "alert('default : array()')">optional</kbd> :
+- except_ids(<small>array&lt;int&gt;</small>) <kbd onclick = "alert('default : array()')">optional</kbd> :
   - List of already logged-in user IDs, to prevent logging in twice with the same user
 
 ##### <pre>Returns</pre>
@@ -312,7 +312,7 @@ Usable by :
 - [ ] Bots
 
 ##### <pre>Arguments</pre>
-- except_ids(<small>array&amp;lt;int&amp;gt;</small>) <kbd onclick = "alert('default : array()')">optional</kbd> :
+- except_ids(<small>array&lt;int&gt;</small>) <kbd onclick = "alert('default : array()')">optional</kbd> :
   - List of already logged-in user IDs, to prevent logging in twice with the same user
 
 - timeout(<small>int</small>) <kbd onclick = "alert('default : 30')">optional</kbd> :

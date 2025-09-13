@@ -8,6 +8,8 @@ use Tak\Liveproto\Crypto\Password;
 
 use Tak\Liveproto\Enums\EmailPurpose;
 
+use Tak\Liveproto\Enums\Authentication;
+
 trait Account {
 	public function update_password(#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $new = null,? string $hint = null,? string $email = null) : bool {
 		$account = $this->account->getPassword();
