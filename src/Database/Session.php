@@ -38,24 +38,10 @@ final class Session {
 		['ip'=>'149.154.167.40','ipv6'=>'2001:67c:4e8:f002:0000:0000:0000:000e','port'=>80,'dc'=>2],
 		['ip'=>'149.154.175.117','ipv6'=>'2001:b28:f23d:f003:0000:0000:0000:000e','port'=>80,'dc'=>3]
 	);
-	public readonly bool $ipv6;
-	public readonly bool $testmode;
-	public readonly int $dc;
-	public readonly float $savetime;
-	public readonly string $server;
-	public readonly string $username;
-	public readonly string $password;
-	public readonly string $database;
+	private string $mode;
 
-	public function __construct(public readonly string | null $name,private string | null $mode,Settings $settings){
-		$this->ipv6 = is_bool($settings->ipv6) ? $settings->ipv6 : false;
-		$this->testmode = is_bool($settings->testmode) ? $settings->testmode : false;
-		$this->dc = is_int($settings->dc) ? $settings->dc : 0;
-		$this->savetime = is_numeric($settings->savetime) ? $settings->savetime : 3;
-		$this->server = is_string($settings->server) ? $settings->server : 'localhost';
-		$this->username = is_string($settings->username) ? $settings->username : (string) null;
-		$this->password = is_string($settings->password) ? $settings->password : (string) null;
-		$this->database = is_string($settings->database) ? $settings->database : $this->username;
+	public function __construct(public readonly string | null $name,? string $mode,public readonly Settings $settings){
+		$this->mode = strtolower(strval($mode));
 	}
 	public function generate() : object {
 		if($this->dc > 0):
@@ -79,7 +65,7 @@ final class Session {
 				$server = $this->servers[array_rand($this->servers)];
 			endif;
 		endif;
-		return new Content(['id'=>0,'api_id'=>0,'api_hash'=>(string) null,'dc'=>$server['dc'],'ip'=>($this->ipv6 ? $server['ipv6'] : $server['ip']),'port'=>$server['port'],'auth_key'=>new \stdClass,'salt'=>0,'sequence'=>0,'time_offset'=>0,'last_msg_id'=>0,'logout_tokens'=>[],'peers'=>new CachedPeers($this->name),'state'=>(object) array('pts'=>1,'qts'=>-1,'date'=>1,'seq'=>0),'step'=>Authentication::NEED_AUTHENTICATION],$this->savetime);
+		return new Content(['id'=>0,'api_id'=>0,'api_hash'=>(string) null,'dc'=>$server['dc'],'ip'=>($this->ipv6 ? $server['ipv6'] : $server['ip']),'port'=>$server['port'],'auth_key'=>new \stdClass,'expires_at'=>0,'salt'=>0,'salt_valid_until'=>0,'sequence'=>0,'time_offset'=>0,'last_msg_id'=>0,'logout_tokens'=>[],'peers'=>new CachedPeers($this->name),'state'=>(object) array('pts'=>1,'qts'=>-1,'date'=>1,'seq'=>0),'step'=>Authentication::NEED_AUTHENTICATION],$this->savetime);
 	}
 	public function load() : object {
 		if(isset($this->content)):
@@ -89,7 +75,7 @@ final class Session {
 			$this->content->setSession($this);
 			return $this->content;
 		else:
-			switch(strtolower(strval($this->mode))):
+			switch($this->mode):
 				case 'string':
 					$file = '.'.DIRECTORY_SEPARATOR.$this->name.'.session';
 					if(isFile($file) and getSize($file)):
@@ -140,13 +126,13 @@ final class Session {
 					$this->content = unserialize(gzinflate(base64_decode($this->name)))->setSession($this);
 					break;
 				default:
-					throw new \Exception('The database mode is invalid ! It must be one of the modes of string , sqlite , mysql , text !');
+					throw new \InvalidArgumentException('The database mode is invalid ! It must be one of the modes of string , sqlite , mysql , text !');
 			endswitch;
 		endif;
 		return $this->content;
 	}
 	public function save() : void {
-		if(is_null($this->name) === false and $this->mode !== 'text'):
+		if(is_null($this->name) === false):
 			switch($this->mode):
 				case 'string':
 					$file = '.'.DIRECTORY_SEPARATOR.$this->name.'.session';
@@ -162,8 +148,15 @@ final class Session {
 					$data = Tools::marshal($this->content->toArray());
 					array_walk($data,fn(mixed $value,string $key) : mixed => $this->mysql->set($this->name,$key,$value,Tools::inferType($value)));
 					break;
+				case 'text':
+					/*
+					 * New information in the text session is not stored anywhere
+					 * You may encounter warnings in some cases
+					 * I do not recommend this type of session
+					 */
+					break;
 				default:
-					throw new \Exception('The database mode is invalid ! It must be one of the modes of string , sqlite , mysql , text !');
+					throw new \InvalidArgumentException('The database mode is invalid ! It must be one of the modes of string , sqlite , mysql , text !');
 			endswitch;
 		endif;
 	}
@@ -205,9 +198,21 @@ final class Session {
 		$content = $session->load();
 		return base64_encode(gzdeflate(serialize($content)));
 	}
+	public function __get(string $property) : mixed {
+		return $this->settings->$property;
+	}
+	public function __set(string $property,mixed $value) : void {
+		$this->settings->$property = $value;
+	}
+	public function __unset(string $property) : void {
+		unset($this->settings->$property);
+	}
+	public function __isset(string $property) : bool {
+		return isset($this->settings->$property);
+	}
 	public function __debugInfo() : array {
 		return array(
-			'content'=>isset($this->content) ? $this->content : new \stdClass,
+			'content'=>isset($this->content) ? $this->content : null,
 			'ipv6'=>$this->ipv6,
 			'testmode'=>$this->testmode,
 			'dc'=>$this->dc,
@@ -223,7 +228,7 @@ final class Session {
 		$this->reset(id : 0);
 	}
 	public function __sleep() : array {
-		return array('ipv6','testmode','dc','savetime','server','username','password','database');
+		return array('settings');
 	}
 }
 

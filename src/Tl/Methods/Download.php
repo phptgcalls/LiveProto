@@ -25,7 +25,15 @@ use function Amp\File\isDirectory;
 use function Amp\File\move;
 
 trait Download {
-	protected function download_file(string $path,int $size,int $dc_id,#[Type('InputFileLocation')] $location,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
+	protected function download_file(
+		string $path,
+		int $size,
+		int $dc_id,
+		#[Type('InputFileLocation')] $location,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : string {
 		$stream = openFile($path,'wb');
 		$percent = 0;
 		$offset = 0;
@@ -41,7 +49,7 @@ trait Download {
 				throw $error;
 			endif;
 		}
-		Logging::log('Download','Start downloading the '.basename($path).' file ...',0);
+		Logging::log('Download','Start downloading the '.basename($path).' file ...');
 		if($getFile instanceof \Tak\Liveproto\Tl\Types\Upload\FileCdnRedirect):
 			$client = $this->switchDC(dc_id : $getFile->dc_id,cdn : true,media : true);
 			while($size > $offset or $size <= 0):
@@ -72,7 +80,7 @@ trait Download {
 							throw new \RuntimeException('Download canceled !');
 						endif;
 					else:
-						Logging::log('Download Cdn',$percent.'%',0);
+						Logging::log('Download Cdn',$percent.'%');
 					endif;
 				endif;
 				if($limit > strlen($getCdnFile->bytes)) break;
@@ -93,7 +101,7 @@ trait Download {
 							throw new \RuntimeException('Download canceled !');
 						endif;
 					else:
-						Logging::log('Download',$percent.'%',0);
+						Logging::log('Download',$percent.'%');
 					endif;
 				endif;
 				if($limit > strlen($getFile->bytes)) break;
@@ -114,12 +122,18 @@ trait Download {
 				move($path,$newpath);
 			endif;
 		} catch(\Throwable $error){
-			Logging::log('Download','I could not change the '.basename($path).' file extension ...',0);
+			Logging::log('Download','I could not change the '.basename($path).' file extension ...');
 		}
-		Logging::log('Download','Finish downloading the '.basename($path).' file ...',0);
+		Logging::log('Download','Finish downloading the '.basename($path).' file ...');
 		return isset($newpath) ? $newpath : $path;
 	}
-	public function download_photo(string $path,object $file,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
+	public function download_photo(
+		string $path,
+		object $file,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : string {
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\MessageMediaPhoto):
 			$file = $file->photo ? $file->photo : throw new \InvalidArgumentException('The message does not contain the photo property !');
 		endif;
@@ -140,7 +154,14 @@ trait Download {
 		endif;
 		return $this->download_file($path,$size,$dc_id,$location,$progresscallback,$key,$iv);
 	}
-	public function download_profile_photo(string $path,object $file,bool $big = true,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
+	public function download_profile_photo(
+		string $path,
+		object $file,
+		bool $big = true,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : string {
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\User or $file instanceof \Tak\Liveproto\Tl\Types\Other\Chat or $file instanceof \Tak\Liveproto\Tl\Types\Other\Channel):
 			$size = PHP_INT_MAX;
 			$peer = $this->get_input_peer($file->id);
@@ -163,7 +184,14 @@ trait Download {
 			return $this->download_photo($path,$file,$progresscallback,$key,$iv);
 		endif;
 	}
-	public function download_document(string $path,object $file,? callable $progresscallback = null,? string $key = null,? string $iv = null,bool $thumb = false) : string {
+	public function download_document(
+		string $path,
+		object $file,
+		bool $thumb = false,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : string {
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\MessageMediaDocument):
 			$file = $file->document ? $file->document : throw new \InvalidArgumentException('The message does not contain the document property !');
 		endif;
@@ -255,7 +283,13 @@ trait Download {
 			throw new \InvalidArgumentException('Your object is not message media contact !');
 		endif;
 	}
-	public function download_secret_file(string $path,object $file,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
+	public function download_secret_file(
+		string $path,
+		object $file,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : string {
 		if($file instanceof \Tak\Liveproto\Tl\Types\Other\UpdateNewEncryptedMessage):
 			$file = $file->decrypted;
 		endif;
@@ -285,7 +319,13 @@ trait Download {
 			throw new \InvalidArgumentException('File object is not instance of EncryptedFile !');
 		endif;
 	}
-	public function download_media(string $path,object $file,? callable $progresscallback = null,? string $key = null,? string $iv = null) : string {
+	public function download_media(
+		string $path,
+		object $file,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : string {
 		try {
 			if($file instanceof \Tak\Liveproto\Tl\Types\Other\MessageMediaContact or $file instanceof \Tak\Liveproto\Tl\Types\Other\InputMediaContact or $file instanceof \Tak\Liveproto\Tl\Types\Other\BotInlineMessageMediaContact or $file instanceof \Tak\Liveproto\Tl\Types\Other\InputBotInlineMessageMediaContact):
 				return $this->download_contact($path,$file);

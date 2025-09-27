@@ -19,11 +19,11 @@ abstract class Instance implements Stringable , JsonSerializable , ArrayAccess {
 	public function __construct(array $dictionary = array()){
 		$this->sdtClass = $dictionary;
 	}
-	public function &__get(string $property) : mixed {
-		if(isset($this->sdtClass[$property]) === false):
-			$this->sdtClass[$property] = null;
+	public function &__get(string $name) : mixed {
+		if(isset($this->sdtClass[$name]) === false):
+			$this->sdtClass[$name] = null;
 		endif;
-		return $this->sdtClass[$property];
+		return $this->sdtClass[$name];
 	}
 	public function __set(string $name,mixed $value) : void {
 		$this->sdtClass[$name] = $value;
@@ -62,7 +62,6 @@ abstract class Instance implements Stringable , JsonSerializable , ArrayAccess {
 			$comments = Tl::parseDocComment($this);
 			$params = array_keys($comments['param']);
 			$arguments = array_intersect_key($this->sdtClass,array_flip(array_map(fn(string $param) : string => strtok($param,chr(36)),$params)));
-			var_dump($arguments);
 			return $this->request(...$arguments);
 		else:
 			return $this->request(...$this->sdtClass);

@@ -11,6 +11,7 @@
 
   - <kbd>bool $reconnect = false</kbd> , whether to force a reconnection if already connected
   - <kbd>bool $reset = false</kbd> , whether to reset authorization on reconnect
+  - <kbd>bool $origin = true</kbd> , whether to make connection alive
 
 - `setDC` => <kbd>void</kbd> : Sets the IP, port and identifier for a data center
 

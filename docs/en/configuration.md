@@ -167,7 +167,7 @@ You can pass anything that method [initTakeoutSession](https://tl.liveproto.dev/
 - Type : `Boolean` <kbd>optional</kbd>
 - Default : `False`
 
-If this parameter is set to true, you will be connected to Telegram's test servers
+If this parameter is set to true, you will be connected to [Telegram's test servers](en/testservers.md)
 
 ## DC
 
@@ -187,11 +187,27 @@ Set the tcp connection [`protocol`](en/enums.md#ProtocolType)
 
 - Type : `...String` <kbd>optional</kbd>
 
-`SOCKS5` and `HTTP` : You must pass `type` and `address` arguments and `username` and `password` parameters are optional
+`SOCKS5` and `HTTP` : You must pass `type` and `address` arguments & `username` and `password` parameters are optional
+
+`SOCKS4` : You must pass `type` and `address` arguments & `user` parameter is optional
 
 `MTPROXY` : You must pass `type` and `address` and `secret` arguments
 
-!> Possible values ​​for the type parameter : `SOCKS5` , `HTTP` , `MTPROXY`
+!> Possible values ​​for the type parameter : `SOCKS5` , `SOCKS4` , `HTTP` , `MTPROXY`
+
+?> **TLS** is set up by adding the letter `s` to the end of each proxy type , like ( case insensitive ) : `SOCKS5s` , `SOCKS4s` , `HTTPs`
+
+```php
+$settings->setProxy(type : 'socks4',address : '127.0.0.1:443',user : 'ProxyUser');
+
+$settings->setProxy(url : 'socks5://<username>:<password>@127.0.0.1:443');
+
+$settings->setProxy(type : 'mtproxy',url : 'https://t.me/proxy?server=127.0.0.1&port=443&secret=<secret>');
+
+$settings->setProxy(type : 'https',address : '127.0.0.1:443');
+
+$settings->setProxy(type : 'http',address : '127.0.0.1:80',username : 'ProxyUser',password : 'ProxyPassword');
+```
 
 ## Params
 

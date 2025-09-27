@@ -4,6 +4,8 @@
 
   - [Quick start](en/quickstart.md)
   - [Installation](en/installation.md)
+  - [HTTP API vs MTProto](en/vs.md)
+  - [Test Servers](en/testservers.md)
 
 - Getting started
 

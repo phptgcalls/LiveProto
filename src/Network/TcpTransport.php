@@ -8,7 +8,7 @@ use Tak\Liveproto\Enums\ProtocolType;
 
 final class TcpTransport {
 	public object $tcpClient;
-	private object $protocol;
+	public readonly object $protocol;
 
 	public function __construct(string $ip,int $port,int $dc_id,? ProtocolType $protocol = null,? array $proxy = null,bool $test_mode = false,bool $media_only = false){
 		$this->tcpClient = new TcpClient();

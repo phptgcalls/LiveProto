@@ -22,7 +22,7 @@ use Tak\Liveproto\Utils\Binary;
 
 use Tak\Liveproto\Utils\Logging;
 
-final class Connect {
+final class Handshake {
 	public PlainSender $sender;
 
 	public function __construct(object $transport,object $session){
@@ -36,7 +36,7 @@ final class Connect {
 		$pq = intval(gmp_import($reqPQ->pq));
 		$newNonce = strval(gmp_import(random_bytes(0x20)));
 		list($p,$q) = Factorizator::factorize($pq);
-		Logging::log('Factorizator','P = '.$p.' & Q = '.$q,0);
+		Logging::log('Factorizator','P = '.$p.' & Q = '.$q);
 		$pqInnerParams = array(
 			'pq'=>gmp_export($pq),
 			'p'=>gmp_export(min($p,$q)),
@@ -46,7 +46,8 @@ final class Connect {
 			'new_nonce'=>$newNonce
 		);
 		$expires_at = intval($expires_in > 0 ? time() + $expires_in : 0);
-		$dc = ($media_only ? -1 : +1) * (abs($dc_id) + ($test_mode ? 1000 : 0));
+		$dc = ($media_only ? -1 : +1) * (abs($dc_id) + ($test_mode ? 10000 : 0));
+		Logging::log('Handshake','Selected DC : '.$dc);
 		if($expires_at === 0):
 			if($dc_id === 0):
 				$pqInnerData = new \Tak\Liveproto\Tl\Types\Other\PQInnerData($pqInnerParams);
@@ -61,11 +62,11 @@ final class Connect {
 			endif;
 		endif;
 		$data = $pqInnerData->read();
-		Logging::log('Fingerprints',implode(chr(0x20).chr(0x2c).chr(0x20),$reqPQ->server_public_key_fingerprints),0);
+		Logging::log('Fingerprints',implode(chr(0x20).chr(0x2c).chr(0x20),$reqPQ->server_public_key_fingerprints));
 		foreach($reqPQ->server_public_key_fingerprints as $fingerprint):
 			$cipher = Rsa::find($fingerprint,$data);
 			if(is_null($cipher) === false):
-				Logging::log('Fingerprint',$fingerprint,0);
+				Logging::log('Fingerprint',$fingerprint);
 				break;
 			endif;
 		endforeach;
@@ -81,7 +82,7 @@ final class Connect {
 		list($key,$iv) = Helper::generateKeyNonces(gmp_export($serverNonce,0x10),gmp_export($newNonce,0x20));
 		$decrypted = Aes::decrypt($reqDH->encrypted_answer,$key,$iv);
 		// answer_with_hash ( decrypted ) := SHA1(answer) + answer + (0-15 random bytes) //
-		Logging::log('Aes','Decrypt ige length = '.strlen($decrypted),0);
+		Logging::log('Aes','Decrypt ige length = '.strlen($decrypted));
 		$dhInner = new Binary();
 		$dhInner->write($decrypted);
 		$answerHash = $dhInner->read(20); // the first 20 bytes of answer_with_hash must be equal to SHA1 //
@@ -108,7 +109,7 @@ final class Connect {
 			$clientDHData = (new \Tak\Liveproto\Tl\Types\Other\ClientDHInnerData)(nonce : $nonce,server_nonce : $serverNonce,retry_id : $retryId,g_b : gmp_export($g_b));
 			$data = $clientDHData->read();
 			$clientDhEncrypted = Aes::encrypt(sha1($data,true).$data,$key,$iv);
-			Logging::log('Aes','Encrypt ige length = '.strlen($clientDhEncrypted),0);
+			Logging::log('Aes','Encrypt ige length = '.strlen($clientDhEncrypted));
 			$setClientDH = $this(method : 'setClientDHParams',nonce : $nonce,server_nonce : $serverNonce,encrypted_data : $clientDhEncrypted);
 			assert($setClientDH->nonce === $nonce,new Security('Nonce from server is not equal to nonce !'));
 			assert($setClientDH->server_nonce === $serverNonce,new Security('Server nonce from server is not equal to server nonce !'));
@@ -119,21 +120,22 @@ final class Connect {
 				$genSalt = new Binary();
 				$genSalt->write(substr(gmp_export($newNonce,0x20),0,8) ^ substr(gmp_export($serverNonce,0x10),0,8));
 				$salt = $genSalt->readLong();
-				Logging::log('Generate','Salt : '.$salt,0);
-				Logging::log('Connect','OK !',0);
-				return array($authKey,$timeOffset,$salt);
+				$salt_valid_until = strtotime('+ 30 minutes');
+				Logging::log('Generate','Salt : '.$salt);
+				Logging::log('Handshake','OK !');
+				return array($authKey,$timeOffset,$salt,$salt_valid_until);
 			elseif($setClientDH instanceof \Tak\Liveproto\Tl\Types\Other\DhGenRetry):
 				$newNonceHashCalculated = $authKey->calcNewNonceHash(gmp_export($newNonce,0x20),0x2);
 				assert($setClientDH->new_nonce_hash2 === $newNonceHashCalculated,new Security('Nonce hash 2 is not equal to nonce hash calculated !'));
-				Logging::log('Connect','Dh gen retry !',E_ERROR);
+				Logging::log('Handshake','Dh gen retry !',E_ERROR);
 				continue;
 			elseif($setClientDH instanceof \Tak\Liveproto\Tl\Types\Other\DhGenFail):
 				$newNonceHashCalculated = $authKey->calcNewNonceHash(gmp_export($newNonce,0x20),0x3);
 				assert($setClientDH->new_nonce_hash3 === $newNonceHashCalculated,new Security('Nonce hash 3 is not equal to nonce hash calculated !'));
-				Logging::log('Connect','Dh gen fail !',E_ERROR);
+				Logging::log('Handshake','Dh gen fail !',E_ERROR);
 				break;
 			else:
-				Logging::log('Connect','Fail !'.$setClientDH,0);
+				Logging::log('Handshake','Fail !'.$setClientDH);
 			endif;
 		endfor;
 		throw new \RuntimeException('Authentication failed !');

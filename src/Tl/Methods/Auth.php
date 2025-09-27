@@ -55,7 +55,13 @@ trait Auth {
 		$this->load->step = Authentication::LOGIN;
 		return $result;
 	}
-	public function sign_in(string | int | null $code = null,#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $bot_token = null,#[\SensitiveParameter] ? string $web_token = null,? string $email = null) : object {
+	public function sign_in(
+		string | int | null $code = null,
+		#[\SensitiveParameter] ? string $password = null,
+		#[\SensitiveParameter] ? string $bot_token = null,
+		#[\SensitiveParameter] ? string $web_token = null,
+		? string $email = null
+	) : object {
 		if(is_null($code) === false):
 			try {
 				$result = $this->auth->signIn(phone_code : strval($code),email_verification : $email,phone_number : $this->load->phonenumber,phone_code_hash : $this->load->phonecodehash);

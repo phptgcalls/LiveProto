@@ -18,13 +18,17 @@ use Tak\Liveproto\Utils\Helper;
 
 use Tak\Liveproto\Utils\Logging;
 
+use Tak\Liveproto\Utils\Settings;
+
 use Tak\Liveproto\Tl\All;
+
+use Tak\Liveproto\Tl\MTRequest;
 
 use Tak\Liveproto\Parser\Tl;
 
 use Tak\Liveproto\Enums\NonRpcResult;
 
-use Amp\DeferredFuture;
+use Tak\Liveproto\Enums\MTProtoKeepAlive;
 
 use Amp\TimeoutCancellation;
 
@@ -35,76 +39,81 @@ use Revolt\EventLoop;
 use Throwable;
 
 final class Sender {
-	private readonly object $load;
-	private array $msgIds = array();
-	private array $identifiers = array();
+	protected readonly object $load;
+	private array $salts = array();
 	private array $pendingAcks = array();
 	private int $lastAckTime = 0;
 	private array $received = array();
-	private array $receiveQueue = array();
+	private array $queue = array();
 	private string $receiveLoop;
 
 	public const UPDATES = array(0xe317af7e,0x313bc7f8,0x4d6deea5,0x78d4dec1,0x725b04c3,0x74ae4240,0x9015e101);
 
-	public function __construct(protected object $transport,private readonly object $session,private object $handler){
+	public const BY_MSG_ID = 'messageId';
+	public const BY_IDENTIFIERS = 'identifier';
+	public const BY_SEQ_NO = 'sequence';
+
+	public function __construct(protected object $transport,private readonly object $session,private object $handler,private readonly MTProtoKeepAlive $keepAlive){
 		$this->load = $session->load();
 		$session->reset();
 		$this->receiveLoop = strval(null);
 		$this->receiveLoop = EventLoop::defer($this->receivePacket(...));
 		EventLoop::setErrorHandler($this->errors(...));
+		gc_enable();
 	}
-	public function objectHash(object $class) : string {
-		return md5(spl_object_hash($class));
-	}
-	public function send(Binary $request,mixed ...$arguments) : void {
-		EventLoop::queue($this->sendPacket(...),$request,...$arguments);
+	public function send(MTRequest $request) : void {
+		if($this->keepAlive === MTProtoKeepAlive::HTTP_LONG_POLL):
+			$httpWait = new MTRequest('types.httpWait');
+			$httpRequest = $httpWait->withParameters(max_delay : Settings::envGuess('HTTP_MAX_DELAY',1000),wait_after : Settings::envGuess('HTTP_WAIT_AFTER',200),max_wait : Settings::envGuess('HTTP_MAX_WAIT',2000));
+			EventLoop::queue($this->sendContainer(...),$request,$httpRequest);
+		else:
+			EventLoop::queue($this->sendPacket(...),$request);
+		endif;
 	}
 	# https://core.telegram.org/mtproto/service_messages_about_messages#acknowledgment-of-receipt #
 	public function sendAcknowledgement() : void {
 		$acks = array_unique($this->pendingAcks);
 		$elapsed = intval(time() - $this->lastAckTime);
 		if($acks and (count($acks) >= 0x10 or (60 <= $elapsed and $elapsed <= 120))):
-			$msgAck = new \Tak\Liveproto\Tl\Types\Other\MsgsAck(['msg_ids'=>$acks]);
-			$this->send(request : $msgAck->stream());
+			$msgsAck = new MTRequest('types.msgsAck',contentRelated : false);
+			$ackRequest = $msgsAck->withParameters(msg_ids : $acks);
+			$this->send($ackRequest);
 			$this->pendingAcks = array();
 			$this->lastAckTime = time();
 		endif;
 	}
-	public function sendPacket(Binary $request,? int $messageId = null,mixed $identifier = null,bool $contentRelated = true) : void {
-		$message_id = is_null($messageId) ? $this->session->getNewMsgId() : $messageId;
-		$data = $this->composePlainMessage(request : $request,salt : $this->load->salt,session_id : $this->load->id,message_id : $message_id,sequence : $this->session->generateSequence($contentRelated));
-		$message = $this->encryptMTProtoMessage(data : $data,version : 2);
-		$this->msgIds[$this->objectHash($request)] = $message_id;
-		if(is_null($identifier) === false):
-			$this->identifiers[$this->objectHash($request)] = $identifier;
+	# https://core.telegram.org/mtproto/service_messages#containers #
+	public function sendContainer(MTRequest ...$requests) : void {
+		# msg_container#73f1f8dc messages:vector<message> = MessageContainer; #
+		if(empty($requests) === false):
+			$container = new Binary(true);
+			$container->writeInt(0x73f1f8dc);
+			$container->writeInt(count($requests));
+			foreach($requests as $request):
+				$message_id = is_null($request->messageId) ? $this->session->getNewMsgId() : $request->messageId;
+				$this->queue[strval($request)] = $request;
+				$sequence = $this->session->generateSequence($request->contentRelated);
+				$container->write($request->toMessage($message_id,$sequence));
+			endforeach;
+			$mtRequest = new MTRequest($container,contentRelated : false);
+			$this->sendPacket($mtRequest);
 		endif;
-		Logging::log('Send Packet','Request : '.strval($request).' , Packet length : '.strlen($message).' , Message ID : '.$message_id.' , Identifier Type : '.gettype($identifier),0);
+	}
+	public function sendPacket(MTRequest $request) : void {
+		$message_id = is_null($request->messageId) ? $this->session->getNewMsgId() : $request->messageId;
+		$sequence = is_null($request->sequence) ? $this->session->generateSequence($request->contentRelated) : $request->sequence;
+		$data = $this->composePlainMessage(request : $request,salt : $this->getFreshFutureSalt(renew : $request->keepOldSalt === false),session_id : $this->load->id,message_id : $message_id,sequence : $sequence);
+		$message = $this->encryptMTProtoMessage(data : $data,version : 2);
+		$request->messageId = $message_id;
+		$this->queue[strval($request)] = $request;
+		Logging::log('Send Packet','Request : '.strval($request->getBinary()).' , Packet length : '.strlen($message).' , Message ID : '.$message_id.' , Sequence : '.$sequence.' , Identifier Type : '.var_export($request->identifier,true));
 		$this->transport->send($message);
 	}
-	public function composePlainMessage(Binary $request,int $salt,int $session_id,int $message_id,int $sequence) : string {
+	public function composePlainMessage(MTRequest $request,int $salt,int $session_id,int $message_id,int $sequence) : string {
 		$plainWriter = new Binary();
 		$plainWriter->writeLong($salt);
 		$plainWriter->writeLong($session_id);
-		$plainWriter->writeLong($message_id);
-		$plainWriter->writeInt($sequence);
-		$packet = $request->read();
-		$packetLength = strlen($packet);
-		# gzip_packed#3072cfa1 packed_data:string = Object; #
-		if($packetLength > 512 and boolval($sequence % 2 === 1)):
-			$gzip = new Binary();
-			$gzip->writeInt(0x3072cfa1);
-			$gzip->writeBytes(gzencode($packet));
-			$compressed = $gzip->read();
-			$compressedLength = strlen($compressed);
-			if($packetLength > $compressedLength):
-				Logging::log('Gzip','compressed size : '.$compressedLength.' , using compressed payload ( saves '.intval($packetLength - $compressedLength).' bytes )',0);
-				$plainWriter->writeInt($compressedLength);
-				$plainWriter->write($compressed);
-				return $plainWriter->read();
-			endif;
-		endif;
-		$plainWriter->writeInt($packetLength);
-		$plainWriter->write($packet);
+		$plainWriter->write($request->toMessage($message_id,$sequence));
 		return $plainWriter->read();
 	}
 	public function encryptMTProtoMessage(string $data,int $version) : string {
@@ -129,56 +138,50 @@ final class Sender {
 		return $cipherWriter->read();
 	}
 	# https://core.telegram.org/api/pfs#related-articles #
-	public function bindTempAuthKey(self $sender,int $temp_auth_key_id,int $temp_session_id,int $expires_at,int $try = 3) : bool {
+	public function bindTempAuthKey(self $sender,int $try = 3) : bool {
 		$nonce = Helper::generateRandomLong();
-		$authKeyInner = new \Tak\Liveproto\Tl\Types\Other\BindAuthKeyInner(['nonce'=>$nonce,'temp_auth_key_id'=>$temp_auth_key_id,'perm_auth_key_id'=>$this->load->auth_key->id,'temp_session_id'=>$temp_session_id,'expires_at'=>$expires_at]);
-		$bindInner = $authKeyInner->stream();
+		$authKeyInner = new MTRequest('types.bindAuthKeyInner');
+		$bindInner = $authKeyInner->withParameters(nonce : $nonce,temp_auth_key_id : $sender->load->auth_key->id,perm_auth_key_id : $this->load->auth_key->id,temp_session_id : $sender->load->id,expires_at : $sender->load->auth_key->expires_at);
 		do {
 			try {
-				$message_id = $this->session->getNewMsgId();
+				$message_id = $sender->load->last_msg_id = $this->session->getNewMsgId();
 				$data = $this->composePlainMessage(request : $bindInner,salt : Helper::generateRandomLong(),session_id : Helper::generateRandomLong(),message_id : $message_id,sequence : 0);
 				$cipher = $this->encryptMTProtoMessage(data : $data,version : 1);
-				$bindTemp = new \Tak\Liveproto\Tl\Functions\Auth\BindTempAuthKey(['perm_auth_key_id'=>$this->load->auth_key->id,'nonce'=>$nonce,'expires_at'=>$expires_at,'encrypted_message'=>$cipher]);
-				$binary = $bindTemp->stream();
-				Logging::log('Bind Temp','Expires at : '.strval($expires_at).' , EncryptedMessage ID : '.$message_id,0);
-				$sender->sendPacket(request : $binary,messageId : $message_id);
-				return $sender->receive(request : $binary,timeout : 10);
+				Logging::log('Bind Temp','Expires at : '.strval($sender->load->auth_key->expires_at).' , EncryptedMessage ID : '.$message_id);
+				$bindTemp = new MTRequest('functions.auth.bindTempAuthKey',messageId : $message_id,timeout : 10);
+				$bindRequest = $bindTemp->withParameters(perm_auth_key_id : $this->load->auth_key->id,nonce : $nonce,expires_at : $sender->load->auth_key->expires_at,encrypted_message : $cipher);
+				return $sender($bindRequest);
 			} catch(RpcError $error){
 				$code = $error->getCode();
 			} finally {
 				$try--;
 			}
-		} while($try > 0 and $code == 400);
+		} while($try > 0 and isset($code) and $code == 400);
 		throw new \RuntimeException('Failed to create a temporary client !');
 	}
-	public function receive(Binary $request,float $timeout) : mixed {
-		$deferred = new DeferredFuture();
-		$future = $deferred->getFuture();
-		$this->receiveQueue[$this->objectHash($request)] = ['request'=>$request,'deferred'=>$deferred];
-		$cancellation = $timeout > 0 ? new TimeoutCancellation($timeout) : null;
+	public function receive(MTRequest $request) : mixed {
+		$future = $request->getDeferred()->getFuture();
+		$cancellation = $request->timeout > 0 ? new TimeoutCancellation($request->timeout) : $request->cancellation;
 		return $future->await($cancellation);
 	}
 	public function receivedLoop() : void {
 		static $mutex = new LocalMutex;
 		$lock = $mutex->acquire();
 		foreach($this->received as $hash => $object):
-			if(array_key_exists($hash,$this->receiveQueue)):
-				extract($this->receiveQueue[$hash]);
-				if($deferred->isComplete()):
-					unset($this->receiveQueue[$hash]);
-					gc_collect_cycles();
-				else:
+			if(array_key_exists($hash,$this->queue)):
+				$request = $this->queue[$hash];
+				$deferred = $request->getDeferred();
+				if($deferred->isComplete() === false):
 					switch($object->status):
 						case 'success':
 							if(isset($object->result->chats,$object->result->users) and is_array($object->result->chats) and is_array($object->result->users)):
 								$this->handler->saveAccessHash($object->result);
 							endif;
 							if(isset($object->result->vector) and is_callable($object->result->vector)):
-								$constructor = All::getConstructor($request->readInt());
+								$constructor = $request->getConstructor();
 								$comments = Tl::parseDocComment($constructor);
 								$return = Tl::parseType($comments['return']);
 								$object->result = call_user_func($object->result->vector,$return['type'],true);
-								$request->undo();
 							endif;
 							if(isset($object->result->bool) and is_callable($object->result->bool)):
 								$object->result = call_user_func($object->result->bool,true);
@@ -189,7 +192,8 @@ final class Sender {
 							$deferred->error($object->exception);
 							break;
 						case 'resend':
-							$this->send($request);
+							$this->sendPacket($request);
+							$request->keepOldSalt || $this->httpLongPoll();
 							break;
 					endswitch;
 					unset($this->received[$hash]);
@@ -218,6 +222,8 @@ final class Sender {
 			} catch(Throwable $error){
 				Logging::log('Receive Packet',$error->getMessage(),E_WARNING);
 				$this->ping();
+				$this->httpLongPoll();
+				$this->gcCleanup();
 			}
 		endwhile;
 	}
@@ -275,23 +281,22 @@ final class Sender {
 	public function processMessage(int $messageId,int $sequence,Binary $reader) : void {
 		$object = strval($reader);
 		$constructorId = $reader->readInt();
-		Logging::log('Process Message',(class_exists($object) ? 'Object : '.$object : 'Constructor Number : 0x'.dechex($constructorId)).' , Message ID : '.$messageId,0);
+		Logging::log('Process Message',(class_exists($object) ? 'Object : '.$object : 'Constructor Number : 0x'.dechex($constructorId)).' , Message ID : '.$messageId);
 		# pong#347773c5 msg_id:long ping_id:long = Pong; #
 		if($constructorId == 0x347773c5):
 			$msg_id = $reader->readLong();
 			$ping_id = $reader->readLong();
-			if(in_array($msg_id,$this->msgIds)):
-				$hash = array_search($msg_id,$this->msgIds);
+			if($hash = $this->getHashQueue($msg_id,self::BY_MSG_ID)):
 				$this->received[$hash] = (object) ['status'=>'success','result'=>$ping_id];
-				Logging::log('Live','Pong !',0);
+				Logging::log('Live','Pong !');
 			endif;
 			return;
 		# msg_container is used instead of msg_copy #
 		# msg_container#73f1f8dc messages:vector<message> = MessageContainer; #
 		elseif($constructorId == 0x73f1f8dc):
-			$messages = $reader->readInt();
+			$count = $reader->readInt();
 			# message msg_id:long seqno:int bytes:int body:Object = Message; #
-			for($i = 0;$i < $messages;$i++):
+			for($i = 0;$i < $count;$i++):
 				$msg_id = $reader->readLong();
 				$seq_no = $reader->readInt();
 				$length = $reader->readInt();
@@ -311,12 +316,12 @@ final class Sender {
 		# msgs_ack#62d6b459 msg_ids:Vector<long> = MsgsAck; #
 		elseif($constructorId == 0x62d6b459):
 			$msg_ids = $reader->readVector('long');
-			Logging::log('Msgs Ack',implode(chr(0x20).chr(0x2c).chr(0x20),$msg_ids),0);
+			Logging::log('Msgs Ack',implode(chr(0x20).chr(0x2c).chr(0x20),$msg_ids));
 			return;
 		# rpc_result#f35c6d01 req_msg_id:long result:Object = RpcResult; #
 		elseif($constructorId == 0xf35c6d01):
 			$req_msg_id = $reader->readLong();
-			if(in_array($req_msg_id,$this->msgIds)):
+			if($hash = $this->getHashQueue($req_msg_id,self::BY_MSG_ID)):
 				$constructorId = $reader->readInt();
 				# gzip_packed#3072cfa1 packed_data:string = Object; #
 				if($constructorId === 0x3072cfa1):
@@ -331,7 +336,6 @@ final class Sender {
 					$error_code = $reader->readInt();
 					$error_message = $reader->readBytes();
 					Logging::log('RPC',$error_code.chr(32).$error_message,E_ERROR);
-					$hash = array_search($req_msg_id,$this->msgIds);
 					$this->received[$hash] = (object) ['status'=>'error','exception'=>new RpcError($error_message,$error_code)];
 				# rpc_answer_unknown#5e2ad36e = RpcDropAnswer; #
 				elseif($constructorId === 0x5e2ad36e):
@@ -346,7 +350,6 @@ final class Sender {
 					$bytes = $reader->readInt();
 				else:
 					$result = $reader->readObject(true);
-					$hash = array_search($req_msg_id,$this->msgIds);
 					$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
 					if(in_array($constructorId,self::UPDATES)):
 						$this->handler->processUpdate($result);
@@ -359,11 +362,12 @@ final class Sender {
 			$unique_id = $reader->readLong();
 			$server_salt = $reader->readLong();
 			$this->load['salt'] = $server_salt;
-			Logging::log('New Session Created','First Message ID : '.$first_msg_id,0);
+			$this->load['salt_valid_until'] = strtotime('+ 30 minutes');
+			Logging::log('New Session Created','First Message ID : '.$first_msg_id);
 		# bad_msg_notification#a7eff811 bad_msg_id:long bad_msg_seqno:int error_code:int = BadMsgNotification; #
 		elseif($constructorId == 0xa7eff811):
 			$bad_msg_id = $reader->readLong();
-			if(in_array($bad_msg_id,$this->msgIds)):
+			if($hash = $this->getHashQueue($bad_msg_id,self::BY_MSG_ID)):
 				$status_msg = (object) ['status'=>'resend'];
 				$bad_msg_seqno = $reader->readInt();
 				$error_code = $reader->readInt();
@@ -378,21 +382,23 @@ final class Sender {
 				else:
 					$status_msg = (object) ['status'=>'error','exception'=>new RpcError('Bad Msg Notification !',$error_code)];
 				endif;
-				$hash = array_search($bad_msg_id,$this->msgIds);
+				$this->queue[$hash]->messageId = $this->session->getNewMsgId();
+				$this->queue[$hash]->sequence = $this->session->generateSequence($this->queue[$hash]->contentRelated);
 				$this->received[$hash] = $status_msg;
-				Logging::log('Bad Msg Notification','Bad Message ID : '.$bad_msg_id.' , Error Code : '.$error_code,0);
+				Logging::log('Bad Msg Notification','Bad Message ID : '.$bad_msg_id.' , Error Code : '.$error_code);
 			endif;
 		# bad_server_salt#edab447b bad_msg_id:long bad_msg_seqno:int error_code:int new_server_salt:long = BadMsgNotification; #
 		elseif($constructorId == 0xedab447b):
 			$bad_msg_id = $reader->readLong();
-			if(in_array($bad_msg_id,$this->msgIds)):
+			if($hash = $this->getHashQueue($bad_msg_id,self::BY_MSG_ID)):
 				$bad_msg_seqno = $reader->readInt();
 				$error_code = $reader->readInt(); // 48: incorrect server salt (in this case, the bad_server_salt response is received with the correct salt, and the message is to be re-sent with it) //
 				$new_server_salt = $reader->readLong();
 				$this->load['salt'] = $new_server_salt;
-				$hash = array_search($bad_msg_id,$this->msgIds);
+				$this->load['salt_valid_until'] = strtotime('+ 30 minutes');
+				$this->queue[$hash]->sequence = $this->session->generateSequence($this->queue[$hash]->contentRelated);
 				$this->received[$hash] = (object) ['status'=>'resend'];
-				Logging::log('Bad Server Salt','Bad Message ID : '.$bad_msg_id,0);
+				Logging::log('Bad Server Salt','Bad Message ID : '.$bad_msg_id);
 			endif;
 		# msg_detailed_info#276d3ec6 msg_id:long answer_msg_id:long bytes:int status:int = MsgDetailedInfo; #
 		elseif($constructorId == 0x276d3ec6):
@@ -408,30 +414,37 @@ final class Sender {
 			$status = $reader->readInt();
 			$this->pendingAcks []= $answer_msg_id;
 		# future_salts#ae500895 req_msg_id:long now:int salts:vector<future_salt> = FutureSalts; #
-		elseif($constructorId == 0x809db6df):
+		elseif($constructorId == 0xae500895):
 			$req_msg_id = $reader->readLong();
-			if(in_array($req_msg_id,$this->msgIds)):
+			if($hash = $this->getHashQueue($req_msg_id,self::BY_MSG_ID)):
 				$now = $reader->readInt();
-				$salts = $reader->readVector('future_salt');
-				$this->load['salt'] = end($salts);
-				$hash = array_search($req_msg_id,$this->msgIds);
+				$count = $reader->readInt();
+				# future_salt#0949d9dc valid_since:int valid_until:int salt:long = FutureSalt; #
+				for($i = 0;$i < $count;$i++):
+					$valid_since = $reader->readInt();
+					$valid_until = $reader->readInt();
+					$salt = $reader->readLong();
+					$salts []= (object) ['valid_since'=>$valid_since,'valid_until'=>$valid_until,'salt'=>$salt];
+				endfor;
 				$this->received[$hash] = (object) ['status'=>'success','result'=>$salts];
-				Logging::log('Future Salts','Number of salts : '.count($salts),0);
+				Logging::log('Future Salts','Number of salts : '.count($salts));
 			endif;
 		# destroy_session_ok#e22045fc session_id:long = DestroySessionRes; #
 		# destroy_session_none#62d350c9 session_id:long = DestroySessionRes; #
 		elseif(in_array($constructorId,array(0xe22045fc,0x62d350c9))):
 			$result = $reader->readObject(true);
-			$hash = array_search(NonRpcResult::DESTROY_SESSION,$this->identifiers);
-			$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
-			Logging::log('Destroy Session Res','Session Id : '.$result->session_id,0);
+			if($hash = $this->getHashQueue(NonRpcResult::DESTROY_SESSION,self::BY_IDENTIFIERS)):
+				$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
+			endif;
+			Logging::log('Destroy Session Res','Session Id : '.$result->session_id);
 		# destroy_auth_key_ok#f660e1d4 = DestroyAuthKeyRes; #
 		# destroy_auth_key_none#0a9f2259 = DestroyAuthKeyRes; #
 		# destroy_auth_key_fail#ea109b13 = DestroyAuthKeyRes; #
 		elseif(in_array($constructorId,array(0xf660e1d4,0x0a9f2259,0xea109b13))):
 			$result = $reader->readObject(true);
-			$hash = array_search(NonRpcResult::DESTROY_AUTH_KEY,$this->identifiers);
-			$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
+			if($hash = $this->getHashQueue(NonRpcResult::DESTROY_AUTH_KEY,self::BY_IDENTIFIERS)):
+				$this->received[$hash] = (object) ['status'=>'success','result'=>$result];
+			endif;
 			Logging::log('Destroy Auth',$result->getClass(),E_WARNING);
 		elseif(in_array($constructorId,self::UPDATES)):
 			$this->handler->processUpdate($reader->readObject(true));
@@ -442,20 +455,82 @@ final class Sender {
 		$this->pendingAcks []= $messageId;
 		$this->sendAcknowledgement();
 	}
-	public function destroySession(int $session_id) : object {
+	public function getFutureSalts() : array {
+		$valid_since = strtotime('+ 36 hours');
+		$valid_until = max($this->load->salt_valid_until,strtotime('+ 1 minute'));
+		$this->salts = array_filter($this->salts,fn(object $salt) : bool => $salt->valid_since <= $valid_since and $salt->valid_until >= $valid_until);
+		if(count($this->salts) <= Settings::envGuess('MIN_VALID_SALTS',0x0)):
+			Logging::log('Future Salts','Requesting new future salts from server ...');
+			$getSalts = new MTRequest('functions.getFutureSalts',keepOldSalt : true);
+			$getSaltsRequest = $getSalts->withParameters(num : Settings::envGuess('FUTURE_SALTS_COUNT',0x20));
+			$salts = $this($getSaltsRequest);
+			$this->salts = array_merge($this->salts,$salts);
+			return $this->getFutureSalts();
+		endif;
+		return $this->salts;
+	}
+	public function getFreshFutureSalt(bool $renew = true) : int {
+		if($renew and $this->load->salt_valid_until < strtotime('+ 1 minute')):
+			$salts = $this->getFutureSalts();
+			$future_salt = reset($salts);
+			list($this->load->salt,$this->load->salt_valid_until) = array($future_salt->salt,$future_salt->valid_until);
+			Logging::log('Fresh Future Salt','A new futures salt replaced the previous one , valid for up to '.intval($future_salt->valid_until - time()).' seconds');
+		endif;
+		return $this->load->salt;
+	}
+	public function destroySession(int $session_id) : ? object {
 		if(isset($this->receiveLoop) and $session_id !== 0):
-			$result = $this(raw : new \Tak\Liveproto\Tl\Functions\Other\DestroySession(['session_id'=>$session_id]),identifier : NonRpcResult::DESTROY_SESSION);
-			Logging::log('Destroy Session','Session Id : '.$session_id.' , Result : '.$result->getClass(),0);
+			$destroy = new MTRequest('functions.destroySession',identifier : NonRpcResult::DESTROY_SESSION);
+			$destroyRequest = $destroy->withParameters(session_id : $session_id);
+			$result = $this($destroyRequest);
+			Logging::log('Destroy Session','Session Id : '.$session_id.' , Result : '.$result->getClass());
 			return $result;
+		else:
+			return null;
+		endif;
+	}
+	public function destroyAuthKey(float $timeout = 1.0) : bool | object {
+		if(isset($this->receiveLoop)):
+			try {
+				$destroyRequest = new MTRequest('functions.destroyAuthKey',identifier : NonRpcResult::DESTROY_AUTH_KEY);
+				$result = $this($destroyRequest);
+				Logging::log('Destroy Auth','Result received with '.$timeout.' second timeout');
+				return $result;
+			} catch(Throwable $error){
+				return true;
+			}
+		else:
+			return false;
 		endif;
 	}
 	public function ping() : void {
-		if(isset($this->receiveLoop)):
-			$ping_id = random_int(PHP_INT_MIN,PHP_INT_MAX);
-			Logging::log('Live','Ping ...',0);
-			$ping = new \Tak\Liveproto\Tl\Functions\Other\PingDelayDisconnect(['ping_id'=>$ping_id,'disconnect_delay'=>75]);
-			$this->sendPacket(request : $ping->stream());
+		if(isset($this->receiveLoop) and $this->keepAlive === MTProtoKeepAlive::PING_PONG):
+			Logging::log('Live','Ping ...');
+			$ping = new MTRequest('functions.pingDelayDisconnect');
+			$pingRequest = $ping->withParameters(ping_id : Helper::generateRandomLong(),disconnect_delay : 75);
+			$this->sendPacket($pingRequest);
 		endif;
+	}
+	public function httpLongPoll() : void {
+		if(isset($this->receiveLoop) and $this->keepAlive === MTProtoKeepAlive::HTTP_LONG_POLL):
+			Logging::log('Live','Http Wait ...');
+			$httpWait = new MTRequest('types.httpWait');
+			$httpRequest = $httpWait->withParameters(max_delay : 0,wait_after : 0,max_wait : 75 * 1000);
+			$this->sendPacket($httpRequest);
+		endif;
+	}
+	public function getHashQueue(mixed $value,string $by) : ? string {
+		$filtered = array_filter($this->queue,fn(MTRequest $request) : bool => $request->$by === $value);
+		return array_key_first($filtered);
+	}
+	public function gcCleanup() : void {
+		/*
+		 * TODO : Let's try not to remove those who are waiting to receive a response from the queue
+		 *
+		 * $filtered = array_filter($this->queue,fn(MTRequest $request) : bool => is_null($request->getDeferred(false)));
+		 */
+		$this->queue = array_slice(array : $this->queue,offset : - Settings::envGuess('MAX_QUEUE_LENGTH',1000),preserve_keys : true);
+		gc_collect_cycles();
 	}
 	public function errors(Throwable $error) : never {
 		Logging::log('Sender',$error->getMessage(),E_ERROR);
@@ -465,10 +540,16 @@ final class Sender {
 		unset($this->receiveLoop);
 		Logging::log('Sender','Closed !',E_WARNING);
 	}
-	public function __invoke(object $raw,float $timeout = 10,mixed $identifier = null) : object {
-		$binary = $raw->stream();
-		$this->send(request : $binary,identifier : $identifier);
-		return $this->receive(request : $binary,timeout : $timeout);
+	public function __invoke(MTRequest $raw) : mixed {
+		$this->sendPacket($raw);
+		/*
+		 * Requests passing through here should not require HTTP_LONG_POLL
+		 * Otherwise a function like getFutureSalts would be looking for a new salt in a recursive loop
+		 * http_wait requires a `salt` when sending , but we haven't received a new `salt` result to assign to it yet
+		 * Away from the container
+		 */
+		$raw->keepOldSalt || $this->httpLongPoll();
+		return $this->receive($raw);
 	}
 	public function __destruct(){
 		$this->close();

@@ -22,13 +22,17 @@ use Tak\Liveproto\Tl\Methods\Inline;
 
 use Tak\Liveproto\Tl\Methods\Media;
 
+use Tak\Liveproto\Tl\Methods\Messages;
+
 use Tak\Liveproto\Tl\Methods\Peers;
+
+use Tak\Liveproto\Tl\Methods\Users;
+
+use Tak\Liveproto\Tl\Methods\Channels;
 
 use Tak\Liveproto\Tl\Methods\SecretChat;
 
 use Tak\Liveproto\Tl\Methods\Upload;
-
-use Tak\Liveproto\Tl\Methods\Users;
 
 use Tak\Liveproto\Tl\Methods\Utilities;
 
@@ -63,10 +67,12 @@ abstract class Caller {
 	use FileId;
 	use Inline;
 	use Media;
+	use Messages;
 	use Peers;
+	use Users;
+	use Channels;
 	use SecretChat;
 	use Upload;
-	use Users;
 	use Utilities;
 
 	public function __set(string $property,mixed $value) : void {
@@ -230,10 +236,10 @@ final class Properties {
 			if($raw):
 				return $request;
 			else:
-				$binary = $request->stream();
-				$this->sender->send($binary,$messageid,$identifier);
+				$mtRequest = new MTRequest($request,messageId : $messageid,identifier : $identifier,timeout : $timeout);
+				$this->sender->send($mtRequest);
 				try {
-					$result = $response ? $this->sender->receive($binary,$timeout) : new \stdClass;
+					$result = $response ? $this->sender->receive($mtRequest) : new \stdClass;
 				} catch(RpcError $error){
 					$floodmax = max($this->settings->floodsleepthreshold,$floodwaitlimit);
 					if($error->getCode() == 420 and $floodmax >= $error->getValue()):

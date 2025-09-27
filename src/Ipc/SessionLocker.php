@@ -23,7 +23,7 @@ final class SessionLocker {
 		fflush($this->fp);
 	}
 	public function tryLock() : ? callable {
-		Logging::log('Session Locker','Attempt to lock...',0);
+		Logging::log('Session Locker','Attempt to lock...');
 		if(flock($this->fp,LOCK_EX | LOCK_NB)):
 			$this->commitState(false);
 			return null;

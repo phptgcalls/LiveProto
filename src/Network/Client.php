@@ -28,7 +28,7 @@ use Tak\Liveproto\Handlers\Updates;
 
 use Tak\Liveproto\Enums\Authentication;
 
-use Tak\Liveproto\Enums\NonRpcResult;
+use Tak\Liveproto\Enums\MTProtoKeepAlive;
 
 use Tak\Liveproto\Filters\Filter;
 
@@ -37,8 +37,6 @@ use Revolt\EventLoop;
 use Amp\Sync\LocalMutex;
 
 use Stringable;
-
-use function Amp\File\read;
 
 final class Client extends Caller implements Stringable {
 	protected Session $session;
@@ -67,12 +65,12 @@ final class Client extends Caller implements Stringable {
 		$this->load = $this->session->load();
 		$this->handler = new Updates($this,$this->session);
 		if(is_int($this->load->api_id) and $this->load->api_id > 0):
-			Logging::log('Client','I used the saved Api Id !',0);
+			Logging::log('Client','I used the saved Api Id !');
 		else:
 			$this->load->api_id = $settings->getApiId();
 		endif;
 		if(is_string($this->load->api_hash) and empty($this->load->api_hash) === false):
-			Logging::log('Client','I used the saved Api Hash !',0);
+			Logging::log('Client','I used the saved Api Hash !');
 		else:
 			$this->load->api_hash = $settings->getApiHash();
 		endif;
@@ -81,39 +79,42 @@ final class Client extends Caller implements Stringable {
 		$proxy = $this->settings->getProxy();
 		$this->mtproxy = (is_null($proxy) === false and strtoupper($proxy['type']) === 'MTPROXY') ? $this->inputClientProxy(address : parse_url($proxy['address'],PHP_URL_HOST),port : parse_url($proxy['address'],PHP_URL_PORT)) : null;
 	}
-	public function connect(bool $reconnect = false,bool $reset = false) : void {
+	public function connect(bool $reconnect = false,bool $reset = false,bool $origin = true) : void {
 		if($reconnect):
 			$this->disconnect();
 		endif;
-		Logging::log('Client','Connect to IP : '.$this->load->ip,0);
-		$this->transport = new TcpTransport($this->load->ip,$this->load->port,$this->load->dc,$this->settings->protocol,$this->settings->proxy,$this->session->testmode);
+		Logging::log('Client','Connect to IP : '.$this->load->ip);
+		$this->transport = new TcpTransport($this->load->ip,$this->load->port,$this->load->dc,$this->settings->protocol,$this->settings->proxy,$this->session->testmode,isset($this->load->media_only));
 		if($this->load->auth_key instanceof \stdClass or $reset):
-			$connect = new Connect($this->transport,$this->session);
-			list($this->load->auth_key,$this->load->time_offset,$this->load->salt) = $connect->authentication($this->load->dc,$this->session->testmode);
+			$expires_in = intval($this->load->expires_at - time());
+			$expires_in = intval($expires_in > 0 ? $expires_in : 0);
+			$connect = new Handshake($this->transport,$this->session);
+			list($this->load->auth_key,$this->load->time_offset,$this->load->salt,$this->load->salt_valid_until) = $connect->authentication($this->load->dc,$this->session->testmode,isset($this->load->media_only),$expires_in);
 		endif;
-		$this->sender = new Sender($this->transport,$this->session,$this->handler);
-		# $this->sender->destroy($this->load->id); #
-		$getConfig = $this->help->getConfig(raw : true);
-		$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,proxy : $this->mtproxy,query : $getConfig,params : $this->settings->params,raw : true);
-		if($this->settings->receiveupdates === false):
-			$query = $this->invokeWithoutUpdates(query : $query,raw : true);
+		$this->sender = new Sender($this->transport,$this->session,$this->handler,$this->transport->protocol instanceof \Tak\Liveproto\Network\Protocols\Http ? MTProtoKeepAlive::HTTP_LONG_POLL : ($origin ? MTProtoKeepAlive::PING_PONG : MTProtoKeepAlive::NONE));
+		if($origin):
+			$getConfig = $this->help->getConfig(raw : true);
+			$query = $this->initConnection(api_id : $this->load->api_id,device_model : $this->settings->devicemodel,system_version : $this->settings->systemversion,app_version : $this->settings->appversion,system_lang_code : $this->settings->systemlangcode,lang_pack : $this->settings->langpack,lang_code : $this->settings->langcode,proxy : $this->mtproxy,query : $getConfig,params : $this->settings->params,raw : true);
+			if($this->settings->receiveupdates === false):
+				$query = $this->invokeWithoutUpdates(query : $query,raw : true);
+			endif;
+			$this->config = $this->invokeWithLayer(layer : $this->layer(),query : $query);
 		endif;
-		$this->config = $this->invokeWithLayer(layer : $this->layer(),query : $query);
 		$this->connected = true;
 	}
 	public function setDC(string $ip,int $port,int $id) : void {
 		list($this->load->ip,$this->load->port,$this->load->dc) = func_get_args();
 	}
 	public function changeDC(int $dc_id) : void {
-		Logging::log('Client','Try change dc ...',0);
+		Logging::log('Client','Try change dc ...');
 		$lock = $this->mutex->acquire();
 		try {
 			foreach($this->config->dc_options as $dc):
 				if($dc->ipv6 === $this->settings->ipv6 and $dc->id === $dc_id and $dc->media_only === false and $dc->tcpo_only === false and $dc->cdn === false):
-					# call_user_func(callback : $this->sender,raw : new \Tak\Liveproto\Tl\Functions\Other\DestroyAuthKey,identifier : NonRpcResult::DESTROY_AUTH_KEY); #
+					# $this->sender->destroyAuthKey(); #
 					$this->removeDC($this->load->ip);
 					$this->setDC($dc->ip_address,$dc->port,$dc->id);
-					Logging::log('Client','New IP : '.$dc->ip_address,0);
+					Logging::log('Client','New IP : '.$dc->ip_address);
 					$this->connect(reconnect : true,reset : true);
 					break;
 				endif;
@@ -126,17 +127,17 @@ final class Client extends Caller implements Stringable {
 	}
 	public function switchDC(? int $dc_id = null,bool $cdn = false,bool $media = false,bool $tcpo = false,bool $next = false,int $expires_in = 0) : self {
 		if($this->load->dc === $dc_id and $cdn === false and $next === false and $expires_in === 0):
-			Logging::log('Client','There is no need to switch the data center , we use the same current data center',0);
+			Logging::log('Client','There is no need to switch the data center , we use the same current data center');
 			return $this;
 		endif;
-		Logging::log('Client','Try switch dc ...',0);
+		Logging::log('Client','Try switch dc ...');
 		$lock = $this->mutex->acquire();
 		try {
 			foreach($this->config->dc_options as $dc):
 				if($dc->ipv6 === $this->settings->ipv6 and (is_null($dc_id) or $dc->id === $dc_id) and ($media === true or $dc->media_only === $media) and ($tcpo === true or $dc->tcpo_only === $tcpo) and $dc->cdn === $cdn):
 					if($next === false or ($next === true and in_array($dc->ip_address,array_column($this->dcOptions,'ip_address')) === false)):
-						Logging::log('Client','Switch IP : '.$dc->ip_address,0);
-						$is_authorized = boolval($expires_in > 0 or $dc->cdn === true) ? true : $this->checkAuthorization($dc->id);
+						Logging::log('Client','Switch IP : '.$dc->ip_address);
+						$is_authorized = boolval($expires_in > 0 or $dc->cdn === true) ?: $this->checkAuthorization($dc->id);
 						if($is_authorized === false):
 							$authorization = $this->auth->exportAuthorization(dc_id : $dc->id);
 						endif;
@@ -151,7 +152,7 @@ final class Client extends Caller implements Stringable {
 							$client = clone $this;
 							$dc->client = $client;
 						else:
-							Logging::log('Client','I used old built clients ...',0);
+							Logging::log('Client','I used old built clients ...');
 							$client = current($availableClients)->client;
 						endif;
 						if($is_authorized === false):
@@ -178,16 +179,16 @@ final class Client extends Caller implements Stringable {
 		$this->dcOptions = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->expires_at === 0 || $dcOption->expires_at > time());
 		$availableClients = array_filter($this->dcOptions,fn(object $dcOption) : bool => $dcOption->expires_at > 0 and $dcOption->id === $dc_id);
 		if($expires_in > 0 || empty($availableClients)):
-			Logging::log('Client','Try get temp ...',0);
-			$permanent = $this->switchDC(dc_id : $dc_id);
-			$client = $permanent->switchDC(dc_id : $dc_id,expires_in : $expires_in);
-			$reflection = new \ReflectionClass($client);
-			$temp = $reflection->getProperty('load')->getValue($client);
-			$sender = $reflection->getProperty('sender')->getValue($client);
-			$this->sender->bindTempAuthKey(sender : $sender,temp_auth_key_id : $temp->auth_key->id,temp_session_id : $temp->id,expires_at : $temp->auth_key->expires_at);
-			return $client;
+			Logging::log('Client','Try get temp ...');
+			if($this->load->dc === $dc_id):
+				$client = $this->switchDC(dc_id : $dc_id,expires_in : $expires_in);
+				$this->sender->bindTempAuthKey(sender : $client->sender);
+				return $client;
+			else:
+				return $this->switchDC(dc_id : $dc_id)->getTemp($dc_id,$expires_in);
+			endif;
 		else:
-			Logging::log('Client','I used the same old temp',0);
+			Logging::log('Client','I used the same old temp');
 			return current($availableClients)->client;
 		endif;
 	}
@@ -331,17 +332,17 @@ final class Client extends Caller implements Stringable {
 		return array(
 			'config'=>isset($this->config) ? $this->config : new \stdClass,
 			'dcOptions'=>$this->dcOptions,
-			'mtproxy'=>$this->mtproxy,
-			'devicemodel'=>$this->settings->devicemodel,
-			'systemversion'=>$this->settings->systemversion,
-			'appversion'=>$this->settings->appversion,
-			'systemlangcode'=>$this->settings->systemlangcode,
-			'langpack'=>$this->settings->langpack,
-			'langcode'=>$this->settings->langcode,
-			'hotreload'=>$this->settings->hotreload,
-			'floodsleepthreshold'=>$this->settings->floodsleepthreshold,
-			'receiveupdates'=>$this->settings->receiveupdates,
-			'iptype'=>$this->settings->ipv6 ? 'ipv6' : 'ipv4',
+			'MTProxy'=>$this->mtproxy,
+			'deviceModel'=>$this->settings->devicemodel,
+			'systemVersion'=>$this->settings->systemversion,
+			'appVersion'=>$this->settings->appversion,
+			'systemLangCode'=>$this->settings->systemlangcode,
+			'langPack'=>$this->settings->langpack,
+			'langCode'=>$this->settings->langcode,
+			'hotReload'=>$this->settings->hotreload,
+			'floodSleepThreshold'=>$this->settings->floodsleepthreshold,
+			'receiveUpdates'=>$this->settings->receiveupdates,
+			'ipType'=>$this->settings->ipv6 ? 'ipv6' : 'ipv4',
 			'takeout'=>$this->settings->takeout,
 			'params'=>$this->settings->params,
 			'connected'=>$this->connected
@@ -351,16 +352,11 @@ final class Client extends Caller implements Stringable {
 		$this->session = clone $this->session;
 		$this->load = $this->session->load();
 		$dc = end($this->dcOptions);
-		$expires_in = intval($dc->expires_at - time());
-		$expires_in = intval($expires_in > 0 ? $expires_in : 0);
-		$authentication = boolval($this->load->dc !== $dc->id || boolval($expires_in));
+		$reAuthentication = boolval($this->load->dc !== $dc->id || boolval($dc->expires_at > time()));
 		$this->setDC($dc->ip_address,$dc->port,$dc->id);
-		$this->transport = new TcpTransport($this->load->ip,$this->load->port,$this->load->dc,$this->settings->protocol,$this->settings->proxy,$this->session->testmode,$dc->media_only);
-		if($authentication):
-			$connect = new Connect($this->transport,$this->session);
-			list($this->load->auth_key,$this->load->time_offset,$this->load->salt) = $connect->authentication($dc->id,$this->session->testmode,$dc->media_only,$expires_in);
-		endif;
-		$this->sender = new Sender($this->transport,$this->session,$this->handler);
+		$this->load->media_only = $dc->media_only ? true : null;
+		$this->load->expires_at = $dc->expires_at;
+		$this->connect(reset : $reAuthentication,origin : false);
 	}
 	public function __destruct(){
 		$this->disconnect();

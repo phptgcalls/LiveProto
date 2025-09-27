@@ -8,13 +8,8 @@ use Tak\Liveproto\Enums\Endianness;
 
 abstract class Helper {
 	static public function unpack(string $format,string $string,int $offset = 0,Endianness $byteorder = Endianness::LITTLE) : mixed {
-		$un = unpack($format,$string,$offset);
+		$un = unpack($format,$byteorder->isBig() ? strrev($string) : $string,$offset);
 		$result = is_array($un) ? $un[true] : $un;
-		if($byteorder->isBig()):
-			$type = gettype($result);
-			$result = strrev(strval($result));
-			settype($result,$type);
-		endif;
 		return $result;
 	}
 	static public function pack(string $format,mixed $value,Endianness $byteorder = Endianness::LITTLE) : string {
@@ -58,6 +53,19 @@ abstract class Helper {
 		$key = $hash1.substr($hash2,0x0,0xc);
 		$iv = substr($hash2,0xc,0x8).$hash3.substr($newNonce,0x0,0x4);
 		return [$key,$iv];
+	}
+	# https://core.telegram.org/api/offsets#hash-generation #
+	static public function hashGeneration(int $hash = 0,array $ids = array()) : int {
+		foreach($ids as $id):
+			if(is_string($id)):
+				$id = self::unpack('P',substr(md5($id,true),0,8),Endianness::BIG);
+			endif;
+			$hash = $hash ^ ($hash >> 21) & ~ ( 1 << (8 * PHP_INT_SIZE - 1) >> 20);
+			$hash = $hash ^ ($hash << 35);
+			$hash = $hash ^ ($hash >> 4) & ~ ( 1 << (8 * PHP_INT_SIZE - 1) >> 3);
+			$hash = $hash + $id;
+		endforeach;
+		return $hash;
 	}
 }
 

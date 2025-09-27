@@ -26,7 +26,7 @@
 </a>
 </p>
 
-> A PHP MTProto Telegram Client
+> *A PHP MTProto Telegram Client*
 
 ## What it is
 
@@ -36,9 +36,9 @@ See the [Quick start](en/quickstart.md) guide for more details
 
 ## Features
 
-- Super fast—beats any library out there ! 
+- Super fast — beats any library out there ! 
 - Quick and easy to set up
-- Uses minimal RAM and CPU—super lightweight
+- Uses minimal RAM and CPU — super lightweight
 - Works on any operating system, including Windows, Linux, and more
 - Fully asynchronous for smooth performance
 

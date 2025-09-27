@@ -166,7 +166,13 @@ trait FileId {
 		};
 		return $anonymous->setClient($this);
 	}
-	protected function to_file_id(FileType $file_type,int $dc_id,#[Type('InputFileLocation')] Instance $input_location,int $version = 4,int $sub_version = 54) : string {
+	protected function to_file_id(
+		FileType $file_type,
+		int $dc_id,
+		#[Type('InputFileLocation')] Instance $input_location,
+		int $version = 4,
+		int $sub_version = 54
+	) : string {
 		$type = $file_type->toId();
 		if(isset($input_location->file_reference)):
 			$type |= self::FILE_REFERENCE_FLAG;

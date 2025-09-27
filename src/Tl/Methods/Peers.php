@@ -17,7 +17,9 @@ trait Peers {
 		if(is_null($peer)):
 			return $this->inputPeerEmpty();
 		elseif(is_object($peer)):
-			if(isset($peer->user_id) and is_int($peer->user_id)):
+			if(isset($peer->id) and is_int($peer->id)):
+				return $this->get_input_peer($peer->id,$hash);
+			elseif(isset($peer->user_id) and is_int($peer->user_id)):
 				return $this->get_input_peer($peer->user_id,$hash);
 			elseif(isset($peer->chat_id) and is_int($peer->chat_id)):
 				return $this->get_input_peer($peer->chat_id,$hash);

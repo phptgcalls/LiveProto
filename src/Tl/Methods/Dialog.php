@@ -9,7 +9,16 @@ use Tak\Liveproto\Utils\Logging;
 use function Amp\async;
 
 trait Dialog {
-	public function get_dialogs(int $limit = PHP_INT_MAX,int $id = 0,int $date = 0,string | int | null | object $peer = null,int $hash = 0,? true $pinned = null,? int $folder = null,? callable $callback = null) : array {
+	public function get_dialogs(
+		int $limit = PHP_INT_MAX,
+		int $id = 0,
+		int $date = 0,
+		string | int | null | object $peer = null,
+		int $hash = 0,
+		? true $pinned = null,
+		? int $folder = null,
+		? callable $callback = null
+	) : array {
 		$dialogs = array();
 		do {
 			$lastoffset = ['id'=>$id,'date'=>$date,'peer'=>$peer];
@@ -38,9 +47,17 @@ trait Dialog {
 		} while($lastoffset !== $newoffset and isset($result->count) and $count > 0 and $limit > 0);
 		return $dialogs;
 	}
-	public function get_difference(int $pts = 1,int $date = 1,int $qts = 1,? int $total_limit = 0x7fffffff,? int $pts_limit = null,? int $qts_limit = null,bool $deep = false) : \Generator {
+	public function get_difference(
+		int $pts = 1,
+		int $date = 1,
+		int $qts = 1,
+		? int $total_limit = 0x7fffffff,
+		? int $pts_limit = null,
+		? int $qts_limit = null,
+		bool $deep = false
+	) : \Generator {
 		while(true):
-			Logging::log('Difference','pts = '.$pts.' & date = '.$date.' & qts = '.$qts,0);
+			Logging::log('Difference','pts = '.$pts.' & date = '.$date.' & qts = '.$qts);
 			try {
 				$difference = $this->updates->getDifference(pts : $pts,date : $date,qts : $qts,pts_total_limit : $total_limit,pts_limit : $pts_limit,qts_limit : $qts_limit,timeout : 3);
 			} catch(\Throwable $error){
@@ -65,10 +82,15 @@ trait Dialog {
 			yield $difference;
 		endwhile;
 	}
-	public function get_channel_difference(mixed $channel,? object $filter = null,int $pts = 1,int $limit = 0x7fffffff) : \Generator {
+	public function get_channel_difference(
+		mixed $channel,
+		? object $filter = null,
+		int $pts = 1,
+		int $limit = 0x7fffffff
+	) : \Generator {
 		$inputChannel = $this->get_input_peer($channel);
 		while(true):
-			Logging::log('Channel Difference','pts = '.$pts.' & limit = '.$limit.' & channel id = '.$this->get_peer_id($inputChannel),0);
+			Logging::log('Channel Difference','pts = '.$pts.' & limit = '.$limit.' & channel id = '.$this->get_peer_id($inputChannel));
 			$difference = $this->updates->getChannelDifference(channel : $inputChannel,filter : is_null($filter) ? $this->channelMessagesFilterEmpty() : $filter,pts : $pts,limit : $limit,force : true);
 			if($difference instanceof \Tak\Liveproto\Tl\Types\Updates\ChannelDifference):
 				$pts = $difference->pts;
@@ -88,8 +110,13 @@ trait Dialog {
 			if($difference->final) break;
 		endwhile;
 	}
-	private function search_pts(int $bottom,int $top,int $qts,int $date) : int {
-		Logging::log('Difference','Finding PTS...',0);
+	private function search_pts(
+		int $bottom,
+		int $top,
+		int $qts,
+		int $date
+	) : int {
+		Logging::log('Difference','Finding PTS...');
 		while($bottom <= $top):
 			$pts = ($bottom + $top) >> 1;
 			try {

@@ -5,7 +5,13 @@ declare(strict_types = 1);
 namespace Tak\Liveproto\Tl\Methods;
 
 trait Inline {
-	public function inline_query(string | int | object $bot,? string $query = null,? string $offset = null,string | int | null | object $peer = null,? object $geo_point = null) : mixed {
+	public function inline_query(
+		string | int | object $bot,
+		? string $query = null,
+		? string $offset = null,
+		string | int | null | object $peer = null,
+		? object $geo_point = null
+	) : mixed {
 		$results = $this->messages->getInlineBotResults(bot : $this->get_input_peer($bot),peer : $this->get_input_peer($peer),query : strval($query),offset : strval($offset),geo_point : $geo_point);
 		$results->click = function(? int $index = null,? string $id = null,? string $type = null,mixed ...$args) use($results,$peer) : mixed {
 			if(is_null($id) === false):
@@ -34,7 +40,12 @@ trait Inline {
 		};
 		return $result;
 	}
-	public function click_inline(int $query_id,string $id,string | int | null | object $peer = null,mixed ...$args) : mixed {
+	public function click_inline(
+		int $query_id,
+		string $id,
+		string | int | null | object $peer = null,
+		mixed ...$args
+	) : mixed {
 		$result = $this->messages->sendInlineBotResult($this->get_input_peer($peer),random_int(PHP_INT_MIN,PHP_INT_MAX),$query_id,$id,...$args);
 		if(is_array($result->updates)):
 			$array = array_filter($result->updates,fn(object $update) : bool => $update->message instanceof \Tak\Liveproto\Tl\Types\Other\Message);

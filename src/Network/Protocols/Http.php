@@ -8,8 +8,6 @@ use Tak\Liveproto\Errors\Security;
 
 use Tak\Liveproto\Errors\TransportError;
 
-use Tak\Liveproto\Utils\Binary;
-
 final class Http {
 	public function __construct(private readonly string $host,private readonly int $port){
 		$ip = inet_pton($host);
@@ -51,9 +49,9 @@ final class Http {
 		elseif(array_pop($headers).array_pop($headers) !== strval(null)):
 			throw new Security('Wrong last HTTP header');
 		elseif($code != 200):
-			throw new TransportError($description,$code);
+			throw new TransportError($code.chr(32).$description,intval($code));
 		endif;
-		$headers = array_change_key_case(array_column(array_map(fn(string $item) : array => array_map('trim',explode(chr(58),$item)),$headers),1,0));
+		$headers = array_change_key_case(array_column(array_map(fn(string $item) : array => array_map('trim',explode(chr(58),$item,2)),$headers),1,0));
 		if(isset($headers['connection'])):
 			$close = (strtolower($headers['connection']) === 'close');
 		else:

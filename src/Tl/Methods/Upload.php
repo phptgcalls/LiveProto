@@ -21,7 +21,12 @@ use function Amp\File\getSize;
 use function Amp\File\isFile;
 
 trait Upload {
-	public function upload_file(string $path,? callable $progresscallback = null,? string $key = null,? string $iv = null) : mixed {
+	public function upload_file(
+		string $path,
+		? callable $progresscallback = null,
+		? string $key = null,
+		? string $iv = null
+	) : mixed {
 		if(isFile($path)):
 			$stream = openFile($path,'rb');
 			$size = getSize($path);
@@ -32,7 +37,7 @@ trait Upload {
 			$isBig = ($size > 0xa00000);
 			$progress = 0;
 			$md5 = hash_init('md5');
-			Logging::log('Upload','Start uploading the '.basename($path).' file ...',0);
+			Logging::log('Upload','Start uploading the '.basename($path).' file ...');
 			for($partIndex = 0;$partIndex < $partCount;$partIndex++):
 				$part = $stream->read(length : $partSize);
 				if(strlen($part) !== $partSize and $partIndex < $partCount - 1):
@@ -55,14 +60,14 @@ trait Upload {
 							break;
 						endif;
 					else:
-						Logging::log('Upload',$percent.'%',0);
+						Logging::log('Upload',$percent.'%');
 					endif;
 				else:
 					throw new \Exception('Failed to upload file parts !');
 				endif;
 			endfor;
 			$stream->close();
-			Logging::log('Upload','Finish uploading the '.basename($path).' file ...',0);
+			Logging::log('Upload','Finish uploading the '.basename($path).' file ...');
 			if(is_null($key) === false and is_null($iv) === false):
 				$hash = new Binary();
 				$hash->write(md5($key.$iv,true));

@@ -89,6 +89,29 @@ abstract class Tools {
 		endforeach;
 		return false;
 	}
+	static public function populateIds(array $results,array $indexes) : array {
+		$ids = array();
+		foreach($results as $result):
+			foreach($indexes as $index):
+				if(is_array($index) === false) $index = array($index);
+				$values = array_filter(array_map(fn(string | int | array $property) : mixed => self::getNested($result,$property),$index));
+				$ids []= empty($values) ? 0 : reset($values);
+			endforeach;
+		endforeach;
+		return $ids;
+	}
+	static public function getNested(mixed $result,mixed $property) : mixed {
+		if(is_string($property)):
+			$result = isset($result->$property) ? $result->$property : null;
+		elseif(is_int($property)):
+			$result = isset($result[$property]) ? $result[$property] : null;
+		elseif(is_array($property)):
+			foreach($property as $i):
+				$result = self::getNested($result,$i);
+			endforeach;
+		endif;
+		return $result;
+	}
 }
 
 ?>

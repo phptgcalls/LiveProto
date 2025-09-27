@@ -181,7 +181,12 @@ trait Entities {
 			throw new \ParseError('Opening and ending tag mismatch : '.$text);
 		endif;
 	}
-	private function dom(DOMNode | DOMText $node,int $offset = 0,? string $message = null,array $entities = array()) : array {
+	private function dom(
+		DOMNode | DOMText $node,
+		int $offset = 0,
+		? string $message = null,
+		array $entities = array()
+	) : array {
 		if($node instanceof DOMText):
 			$text = str_replace(['&lt;','&gt;','&amp;'],['<','>','&'],$node->wholeText);
 			$message .= $text;

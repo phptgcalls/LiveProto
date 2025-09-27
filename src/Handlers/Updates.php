@@ -108,20 +108,20 @@ final class Updates {
 	}
 	public function applyUpdate(object $update,bool $recovery = false) : void {
 		if(isset($update->seq)):
-			Logging::log('Updates','Checking SEQ of an update : '.$update->getClass(),0);
+			Logging::log('Updates','Checking SEQ of an update : '.$update->getClass());
 			$state = $this->state();
 			$update->seq_start ??= $update->seq;
 			if($update->seq_start === 0):
-				Logging::log('Update Special Case','seq_start = 0',0);
+				Logging::log('Update Special Case','seq_start = 0');
 				array_map($this->applyUpdate(...),$update->updates);
 			elseif($state->seq + 1 === $update->seq_start):
-				Logging::log('Update Accepted','local seq = '.$state->seq.' (+) 1 (===) seq_start = '.$update->seq_start,0);
+				Logging::log('Update Accepted','local seq = '.$state->seq.' (+) 1 (===) seq_start = '.$update->seq_start);
 				array_map($this->applyUpdate(...),$update->updates);
 			elseif($state->seq + 1 > $update->seq_start):
-				Logging::log('Update Skipped','local seq = '.$state->seq.' (+) 1 (>) seq_start = '.$update->seq_start,0);
+				Logging::log('Update Skipped','local seq = '.$state->seq.' (+) 1 (>) seq_start = '.$update->seq_start);
 				return;
 			elseif($state->seq + 1 < $update->seq_start):
-				Logging::log('Update Missed','local seq = '.$state->seq.' (+) 1 (<) seq_start = '.$update->seq_start,0);
+				Logging::log('Update Missed','local seq = '.$state->seq.' (+) 1 (<) seq_start = '.$update->seq_start);
 				($recovery and isset($this->lock) === false) ? $this->recoveringGaps() : delay(0.5);
 				$this->applyUpdate($update,true);
 				return;
@@ -131,39 +131,39 @@ final class Updates {
 			return;
 		endif;
 		if(isset($update->qts)):
-			Logging::log('Updates','Checking QTS of an update : '.$update->getClass(),0);
+			Logging::log('Updates','Checking QTS of an update : '.$update->getClass());
 			$state = $this->state();
 			$update->qts_count = 1;
 			if($state->qts <= 0):
 				$state->qts = $update->qts - $update->qts_count;
-				Logging::log('Updates','Initializing qts = '.$state->qts,0);
+				Logging::log('Updates','Initializing qts = '.$state->qts);
 			endif;
 			if($state->qts + $update->qts_count === $update->qts):
-				Logging::log('Update Accepted','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (===) qts = '.$update->qts,0);
+				Logging::log('Update Accepted','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (===) qts = '.$update->qts);
 				$state->qts = $update->qts;
 			elseif($state->qts + $update->qts_count > $update->qts):
-				Logging::log('Update Skipped','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (>) qts = '.$update->qts,0);
+				Logging::log('Update Skipped','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (>) qts = '.$update->qts);
 				return;
 			elseif($state->qts + $update->qts_count < $update->qts):
-				Logging::log('Update Missed','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (<) qts = '.$update->qts,0);
+				Logging::log('Update Missed','local qts = '.$state->qts.' (+) qts count = '.$update->qts_count.' (<) qts = '.$update->qts);
 				($recovery and isset($this->lock) === false) ? $this->recoveringGaps() : delay(0.5);
 				$this->applyUpdate($update,true);
 				return;
 			endif;
 		endif;
 		if(isset($update->pts,$update->pts_count)):
-			Logging::log('Updates','Checking PTS of an update : '.$update->getClass(),0);
+			Logging::log('Updates','Checking PTS of an update : '.$update->getClass());
 			$channel_id = isset($update->channel_id) ? $update->channel_id : (isset($update->message->peer_id->channel_id) ? $update->message->peer_id->channel_id : 0);
 			if($channel_id === 0):
 				$state = $this->state();
 				if($state->pts + $update->pts_count === $update->pts):
-					Logging::log('Update Accepted','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts,0);
+					Logging::log('Update Accepted','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts);
 					$state->pts = $update->pts;
 				elseif($state->pts + $update->pts_count > $update->pts):
-					Logging::log('Update Skipped','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts,0);
+					Logging::log('Update Skipped','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts);
 					return;
 				elseif($state->pts + $update->pts_count < $update->pts):
-					Logging::log('Update Missed','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts,0);
+					Logging::log('Update Missed','local pts = '.$state->pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts);
 					($recovery and isset($this->lock) === false) ? $this->recoveringGaps() : delay(0.5);
 					$this->applyUpdate($update,true);
 					return;
@@ -171,23 +171,23 @@ final class Updates {
 			else:
 				$pts = $this->getChannelPts($channel_id);
 				if($pts === 1):
-					Logging::log('Update Special Case','channel id = '.$channel_id.' & channel pts = '.$pts,0);
+					Logging::log('Update Special Case','channel id = '.$channel_id.' & channel pts = '.$pts);
 					$this->setChannelPts($channel_id,$update->pts);
 				elseif($pts + $update->pts_count === $update->pts):
-					Logging::log('Update Accepted','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts,0);
+					Logging::log('Update Accepted','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (===) pts = '.$update->pts);
 					$this->setChannelPts($channel_id,$update->pts);
 				elseif($pts + $update->pts_count > $update->pts):
-					Logging::log('Update Skipped','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts,0);
+					Logging::log('Update Skipped','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (>) pts = '.$update->pts);
 					return;
 				elseif($pts + $update->pts_count < $update->pts):
-					Logging::log('Update Missed','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts,0);
+					Logging::log('Update Missed','local pts = '.$pts.' (+) pts count = '.$update->pts_count.' (<) pts = '.$update->pts);
 					($recovery) ? $this->recoveringChannel($channel_id,$pts) : delay(0.5);
 					$this->applyUpdate($update,true);
 					return;
 				endif;
 			endif;
 		endif;
-		Logging::log('Updates','Applying an update : '.$update->getClass(),0);
+		Logging::log('Updates','Applying an update : '.$update->getClass());
 		try {
 			$encryptedMessage = new Filter\Update('updateNewEncryptedMessage');
 			if($encryptedMessage->apply($update)):
@@ -239,30 +239,30 @@ final class Updates {
 	public function broadcastUpdate(object $update) : void {
 		$update->setClient($this->client);
 		foreach($this->handlers as $name => $handler):
-			Logging::log('Updates','Handler “'.$handler['name'].'” : Starting parameters checks',0);
+			Logging::log('Updates','Handler “'.$handler['name'].'” : Starting parameters checks');
 			$paramsCustom = array();
 			foreach($handler['parameters'] as $parameter):
 				$cloned = clone $update;
 				$check = $parameter($cloned);
 				if($check === false):
-					Logging::log('Updates','Handler “'.$handler['name'].'” : Parameter check failed – skipping',0);
+					Logging::log('Updates','Handler “'.$handler['name'].'” : Parameter check failed – skipping');
 					continue 2;
 				endif;
 				$paramsCustom []= $cloned->is_custom;
 			endforeach;
-			Logging::log('Updates','Handler “'.$handler['name'].'” : Parameters checked , Starting attribute checks',0);
+			Logging::log('Updates','Handler “'.$handler['name'].'” : Parameters checked , Starting attribute checks');
 			if(empty($handler['attributes'])):
 				$applies = array();
 				goto run;
 			endif;
 			foreach($handler['attributes'] as $i => $attributes):
-				Logging::log('Updates','Handler “'.$handler['name'].'”: Applying attributes – '.$i,0);
+				Logging::log('Updates','Handler “'.$handler['name'].'”: Applying attributes – '.$i);
 				$applies = array_map(fn(object $attribute) : mixed => $attribute->apply(clone $update),$attributes);
 				if(empty($applies)):
-					Logging::log('Updates','Handler “'.$handler['name'].'” : Events were not generated – '.$i,0);
+					Logging::log('Updates','Handler “'.$handler['name'].'” : Events were not generated – '.$i);
 					goto run;
 				elseif(in_array(false,$applies) === false):
-					Logging::log('Updates','Handler “'.$handler['name'].'” : Events generated – '.$i,0);
+					Logging::log('Updates','Handler “'.$handler['name'].'” : Events generated – '.$i);
 					foreach($applies as $i => $event):
 						if($event instanceof Instance):
 							$event->setClient($this->client);
@@ -271,20 +271,20 @@ final class Updates {
 							$applies[$i] = $event->addBoundMethods($event);
 						endif;
 					endforeach;
-					Logging::log('Updates','Handler “'.$handler['name'].'” : Added and initialized bound methods on the event – '.$i,0);
+					Logging::log('Updates','Handler “'.$handler['name'].'” : Added and initialized bound methods on the event – '.$i);
 					goto run;
 				else:
-					Logging::log('Updates','Handler “'.$handler['name'].'” : Some attributes returned false – skipping – '.$i,0);
+					Logging::log('Updates','Handler “'.$handler['name'].'” : Some attributes returned false – skipping – '.$i);
 					continue;
 				endif;
 			endforeach;
 			continue;
 			run:
 			if(empty($applies)):
-				Logging::log('Updates','Handler “'.$handler['name'].'” : Dispatching original callback',0);
+				Logging::log('Updates','Handler “'.$handler['name'].'” : Dispatching original callback');
 				$applies = array(clone $update);
 			endif;
-			Logging::log('Updates','Handler “'.$handler['name'].'” : Calling callback with events',0);
+			Logging::log('Updates','Handler “'.$handler['name'].'” : Calling callback with events');
 			$arguments = array_map(fn(mixed $apply,? bool $paramCustom) : mixed => ($paramCustom and ($apply instanceof Instance) === true and ($apply instanceof Events) === false) ? Events::copy($apply)->setClient($this->client) : $apply,$applies,$paramsCustom);
 			async($handler['callback'],...$arguments)->catch(fn(\Throwable $error) : bool => error_log($error->getMessage()));
 		endforeach;
@@ -392,7 +392,7 @@ final class Updates {
 				$local_pts = intval($update->pts - $update->pts_count);
 				$difference = $this->client->updates->getDifference(pts : $local_pts,date : $update->date,pts_limit : $update->pts_count,qts : 0);
 				if(isset($difference->new_messages) and count($difference->new_messages) === $update->pts_count):
-					Logging::log('Process Updates','updates.getDifference results accepted for updateShortSentMessage',0);
+					Logging::log('Process Updates','updates.getDifference results accepted for updateShortSentMessage');
 					$fn = function(object $newMessage) use(&$local_pts) : void {
 						$this->applyUpdate(new \Tak\Liveproto\Tl\Types\Other\UpdateNewMessage(['message'=>$newMessage,'pts'=>++$local_pts,'pts_count'=>1]));
 					};

@@ -19,21 +19,37 @@ use Tak\Liveproto\Enums\RekeyState;
 use function Amp\File\getSize;
 
 trait SecretChat {
-	public function send_secret_message(string | int | object $peer,string $message,int $ttl,mixed ...$arguments) : object {
+	public function send_secret_message(
+		string | int | object $peer,
+		string $message,
+		int $ttl,
+		mixed ...$arguments
+	) : object {
 		$chat = $this->get_secret_chat($peer);
 		$message = $this->secret->decryptedMessage(random_int(PHP_INT_MIN,PHP_INT_MAX),$ttl,$message,...$arguments);
 		$data = $this->encrypt_secret_message($chat['id'],$message);
 		$peer = $this->inputEncryptedChat(chat_id : $chat['id'],access_hash : $chat['access_hash']);
 		return $this->messages->sendEncrypted(peer : $peer,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),data : $data);
 	}
-	public function send_secret_file(string | int | object $peer,object $file,string $message,int $ttl,mixed ...$arguments) : object {
+	public function send_secret_file(
+		string | int | object $peer,
+		object $file,
+		string $message,
+		int $ttl,
+		mixed ...$arguments
+	) : object {
 		$chat = $this->get_secret_chat($peer);
 		$message = $this->secret->decryptedMessage(random_int(PHP_INT_MIN,PHP_INT_MAX),$ttl,$message,...$arguments);
 		$data = $this->encrypt_secret_message($chat['id'],$message);
 		$peer = $this->inputEncryptedChat(chat_id : $chat['id'],access_hash : $chat['access_hash']);
 		return $this->messages->sendEncryptedFile(peer : $peer,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),data : $data,file : $file);
 	}
-	public function send_secret_media(string | int | object $peer,string $path,string $caption,int $ttl) : object {
+	public function send_secret_media(
+		string | int | object $peer,
+		string $path,
+		string $caption,
+		int $ttl
+	) : object {
 		list($file,$key,$iv) = $this->upload_secret_file($path);
 		$mime = mime_content_type($path);
 		if(str_starts_with($mime,'image')):
@@ -120,14 +136,14 @@ trait SecretChat {
 	public function notify_layer(int $chat_id) : void {
 		$chat = $this->get_secret($chat_id);
 		$layer = min($chat['layer'],$this->layer(secret : true));
-		Logging::log('Secret Chat','Notify layer : '.strval($layer),0);
+		Logging::log('Secret Chat','Notify layer : '.strval($layer));
 		$action = $this->secret->decryptedMessageActionNotifyLayer(layer : $layer);
 		$this->send_action($chat_id,$action);
 	}
 	private function handle_decrypted_message(object $decrypted,object $message) : object | null {
-		Logging::log('Secret Chat','handle decrypted message : '.get_class($decrypted),0);
+		Logging::log('Secret Chat','handle decrypted message : '.get_class($decrypted));
 		if($decrypted instanceof \Tak\Liveproto\Tl\Types\Secret\DecryptedMessageService):
-			Logging::log('Secret Chat','handle decrypted message action : '.get_class($decrypted->action),0);
+			Logging::log('Secret Chat','handle decrypted message action : '.get_class($decrypted->action));
 			if($decrypted->action instanceof \Tak\Liveproto\Tl\Types\Secret\DecryptedMessageActionRequestKey):
 				$this->accept_rekey($message->chat_id,$decrypted->action->exchange_id,$decrypted->action->g_a);
 				return null;
@@ -149,11 +165,11 @@ trait SecretChat {
 				$decrypted->action->start_seq_no >>= 1;
 				$decrypted->action->end_seq_no >>= 1;
 				for($seq = $decrypted->action->start_seq_no;$seq <= $decrypted->action->end_seq_no;$seq++):
-					Logging::log('Secret Chat','attempt to resend seq no : '.$seq,0);
+					Logging::log('Secret Chat','attempt to resend seq no : '.$seq);
 					$data = $this->encrypt_secret_message($message->chat_id,$chat['outgoing'][$seq]);
 					$peer = $this->inputEncryptedChat(chat_id : $chat['id'],access_hash : $chat['access_hash']);
 					$this->messages->sendEncrypted(peer : $peer,random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),data : $data);
-					Logging::log('Secret Chat','resend seq no : '.$seq,0);
+					Logging::log('Secret Chat','resend seq no : '.$seq);
 				endfor;
 				return null;
 			elseif($decrypted->action instanceof \Tak\Liveproto\Tl\Types\Secret\DecryptedMessageActionSetMessageTTL):
@@ -262,7 +278,7 @@ trait SecretChat {
 		if($chat['rekey'] !== RekeyState::IDLE):
 			return;
 		endif;
-		Logging::log('Secret Chat','rekey ...',0);
+		Logging::log('Secret Chat','rekey ...');
 		$dhConfig = $this->getDhConfig();
 		$a = gmp_import(random_bytes(0x100));
 		$g_a = gmp_powm($dhConfig->g,$a,$dhConfig->p);
@@ -286,7 +302,7 @@ trait SecretChat {
 				return;
 			endif;
 		endif;
-		Logging::log('Secret Chat','accept rekey ...',0);
+		Logging::log('Secret Chat','accept rekey ...');
 		$dhConfig = $this->getDhConfig();
 		$b = gmp_import(random_bytes(0x100));
 		$g_a = gmp_import($g_a);
@@ -314,7 +330,7 @@ trait SecretChat {
 			$this->set_secret(...$chat);
 			return;
 		endif;
-		Logging::log('Secret Chat','commit rekey ...',0);
+		Logging::log('Secret Chat','commit rekey ...');
 		$dhConfig = $this->getDhConfig();
 		$g_b = gmp_import($g_b);
 		Security::checkG(strval($g_b),strval($dhConfig->p),true);
@@ -347,7 +363,7 @@ trait SecretChat {
 		if($chat['rekey'] !== RekeyState::ACCEPTED or $chat['exchangeid'] !== $exchange_id):
 			return;
 		endif;
-		Logging::log('Secret Chat','complete rekey ...',0);
+		Logging::log('Secret Chat','complete rekey ...');
 		if($chat['key_fingerprint'] !== $key_fingerprint):
 			$action = $this->secret->decryptedMessageActionAbortKey(exchange_id : $exchange_id);
 			$message = $this->secret->decryptedMessageService(random_id : random_int(PHP_INT_MIN,PHP_INT_MAX),action : $action);
@@ -368,7 +384,7 @@ trait SecretChat {
 		if($chat['rekey'] === RekeyState::IDLE or $chat['exchangeid'] !== $exchange_id):
 			return;
 		endif;
-		Logging::log('Secret Chat','abort rekey ...',0);
+		Logging::log('Secret Chat','abort rekey ...');
 		unset($chat['param']);
 		$chat['exchangeid'] = 0;
 		$this->set_secret(...$chat);

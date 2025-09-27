@@ -656,6 +656,9 @@ Usable by :
 - file(<small>object</small>) <kbd style="color : red">required</kbd> :
   - Document or message media document object
 
+- thumb(<small>bool</small>) <kbd onclick = "alert('default : false')">optional</kbd> :
+  - Whether to download the document thumbnail instead of full document
+
 - progresscallback(<small>callable</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
   - Callback for download progress
 
@@ -664,9 +667,6 @@ Usable by :
 
 - iv(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
   - Initialization vector for decryption
-
-- thumb(<small>bool</small>) <kbd onclick = "alert('default : false')">optional</kbd> :
-  - Whether to download the document thumbnail instead of full document
 
 ##### <pre>Returns</pre>
 Returns the path of the downloaded document
@@ -1726,6 +1726,147 @@ $client->send_secret_file(peer : $peer,file : $file,message : 'The caption',ttl 
 
 ---
 
+## fetch_messages()
+
+Fetches messages with many optional filters ( IDs , text query , replies , date , ID ranges , etc ) Returns an iterator that yields message objects matching the filters
+
+Usable by :
+- [x] Users
+- [x] Bots
+
+##### <pre>Arguments</pre>
+- peer(<small>string</small>,<small>int</small>,<small>null</small>,<small>object</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Target peer ( username , ID , or peer object ) If omitted , the current dialog / context is used
+
+- offset_peer(<small>string</small>,<small>int</small>,<small>null</small>,<small>object</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Peer used as offset for pagination
+
+- unread_mentions(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true , only messages with unread mentions will be included
+
+- unread_reactions(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true,only messages with unread reactions will be included
+
+- recent_locations(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true , include recent location messages ( used for live location listing )
+
+- posts(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true , fetch channel / saved post messages ( post-type entries )
+
+- search(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true , the call performs a search ( affects how query / filter are interpreted )
+
+- saved(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true , include saved messages ( your Saved Messages )
+
+- scheduled(<small>bool</small>) <kbd onclick = "alert('default : ')">optional</kbd> :
+  - If true , include scheduled messages ( for channels or scheduled dialogs )
+
+- id(<small>array&lt;int&gt;</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Optional list of message IDs to fetch exactly, When provided the call returns those messages ( Vector of ints )
+
+- filter(<small>object&lt;MessagesFilter&gt;</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Optional filter object ( MessagesFilter ) to restrict message types ( photos , video , gifs , etc )
+
+- query(<small>string</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Text query used when performing a text search ( only used if `search` / `posts` is true or special occasions )
+
+- reply_to(<small>int</small>,<small>bool</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - If set to a message id , fetches replies to that message, if true / false used by some code-paths to indicate reply-only behavior
+
+- shortcut_id(<small>int</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Optional shortcut identifier used by client-side UI to fetch messages for a quick action
+
+- offset(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Numeric offset ( page index ) used for pagination
+
+- offset_id(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Message ID offset used for fetching relative to a specific message
+
+- offset_date(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Date ( unix timestamp ) offset used for pagination
+
+- limit(<small>int</small>) <kbd onclick = "alert('default : 100')">optional</kbd> :
+  - Maximum number of messages to retrieve in one request / batch
+
+- min_id(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Minimum message ID to include ( filters out older messages )
+
+- max_id(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Maximum message ID to include ( filters out newer messages )
+
+- min_date(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Minimum unix date ( timestamp ) to include
+
+- max_date(<small>int</small>) <kbd onclick = "alert('default : 0')">optional</kbd> :
+  - Maximum unix date ( timestamp ) to include
+
+- hashgen(<small>callable</small>,<small>array</small>) <kbd onclick = "alert('default : array()')">optional</kbd> :
+  - Optional hash generator ( callable or array of functions ) used for caching / validation of message sets
+
+- ...args(<small>mixed</small>) <kbd onclick = "alert('default : empty')">optional</kbd> :
+  - Any additional variadic parameters passed through to lower-level calls
+
+##### <pre>Returns</pre>
+An iterator yielding instances of [Message](https://tl.liveproto.dev/#/type/Message)
+
+##### <pre>Example</pre>
+```php
+$messages = $client->fetch_messages(peer : '@TakNone',unread_mentions : true);
+
+$messages = $client->fetch_messages(posts : true,hashtag : 'liveproto');
+
+$messages = $client->fetch_messages(peer : '@LiveProto',id : [13,22]);
+
+$messages = $client->fetch_messages(peer : 'me',scheduled : true);
+
+$messages = $client->fetch_messages(search : true,query : 'LiveProto');
+
+$messages = $client->fetch_messages(peer : '@LiveProtoChat',reply_to : 23);
+
+/*
+ * Now let's look at the results of each of the above models
+ * All of these results are of the Message type
+ */
+foreach($messages as $message){
+	try {
+		echo json_encode($message,flags : JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT) , PHP_EOL;
+	} catch(Throwable){
+		var_dump($message);
+	}
+}
+```
+
+---
+
+## get_input_channel()
+
+Resolves and returns an input-channel representation for a channel ( InputChannel ) which is used in API calls that require an InputPeer-like channel reference
+
+Usable by :
+- [x] Users
+- [x] Bots
+
+##### <pre>Arguments</pre>
+- channel(<small>string</small>,<small>int</small>,<small>null</small>,<small>object</small>) <kbd style="color : red">required</kbd> :
+  - Channel identifier ( username , ID , or channel entity )
+
+- peer(<small>string</small>,<small>int</small>,<small>null</small>,<small>object</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - The chat where the channel was seen
+
+- msg_id(<small>int</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
+  - Optional message ID defines a min channel that was seen in a certain message of a certain chat
+
+##### <pre>Returns</pre>
+An instance of [InputChannel](https://tl.liveproto.dev/#/type/InputChannel)
+
+##### <pre>Example</pre>
+```php
+$inputChannel = $client->get_input_channel('@Telegram');
+```
+
+---
+
 ## get_input_user()
 
 Resolves and returns an input user object to be used in API methods
@@ -1739,10 +1880,10 @@ Usable by :
   - User identifier (username, ID, or full user object)
 
 - peer(<small>string</small>,<small>int</small>,<small>object</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
-  - Optional peer context if resolving user by message
+  - The chat where the user was seen
 
 - msg_id(<small>int</small>,<small>null</small>) <kbd onclick = "alert('default : null')">optional</kbd> :
-  - Optional message ID when using inline bot messages
+  - Optional message ID defines a min user that was seen in a certain message of a certain chat
 
 ##### <pre>Returns</pre>
 An instance of [InputUser](https://tl.liveproto.dev/#/type/InputUser)

@@ -11,7 +11,12 @@ use Tak\Liveproto\Enums\EmailPurpose;
 use Tak\Liveproto\Enums\Authentication;
 
 trait Account {
-	public function update_password(#[\SensitiveParameter] ? string $password = null,#[\SensitiveParameter] ? string $new = null,? string $hint = null,? string $email = null) : bool {
+	public function update_password(
+		#[\SensitiveParameter] ? string $password = null,
+		#[\SensitiveParameter] ? string $new = null,
+		? string $hint = null,
+		? string $email = null
+	) : bool {
 		$account = $this->account->getPassword();
 		$account->new_algo->salt1 .= random_bytes(32);
 		$checker = new Password();

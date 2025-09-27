@@ -4,6 +4,8 @@
 
   - [شروعی سریع](en/quickstart.md)
   - [نصب](en/installation.md)
+  - [HTTP در مقابل MTProto](en/vs.md)
+  - [سرورهای آزمایشی](en/testservers.md)
 
 - شروع کردن
 

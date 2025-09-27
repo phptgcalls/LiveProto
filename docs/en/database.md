@@ -96,6 +96,28 @@ if($client->isAuthorized()){
 }
 ```
 
+## Memory
+
+If you don't want your session to be stored anywhere other than RAM, this is the right option for you
+
+!> Both session name and storage type **must be set to null**
+
+?> I think this is only useful for [Telegram test servers](en/testservers.md)
+
+```php
+use Tak\Liveproto\Network\Client;
+
+use Tak\Liveproto\Utils\Settings;
+
+$settings = new Settings();
+
+/* Telegram Settings */
+$settings->setApiId(29784714);
+$settings->setApiHash('143dfc3c92049c32fbc553de2e5fb8e4');
+
+$client = new Client(null,null,$settings);
+```
+
 ### Task List
 - [x] Providing infrastructure for adding custom databases by the user
   - [ ] Add it to client settings

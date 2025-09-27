@@ -14,9 +14,7 @@ use Amp\Socket\Socket;
 
 use Amp\Socket\ConnectContext;
 
-use Amp\Socket\SocketAddress;
-
-use Amp\Socket\SocketConnector;
+use Amp\Socket\ClientTlsContext;
 
 use Amp\Socket\SocketException;
 
@@ -24,7 +22,7 @@ use League\Uri\Http;
 
 use function Amp\Socket\socketConnector;
 
-final class HttpSocketConnector implements SocketConnector {
+final class HttpSocketConnector {
 	use ForbidCloning;
 	use ForbidSerialization;
 
@@ -35,7 +33,7 @@ final class HttpSocketConnector implements SocketConnector {
 			$authHeader = 'Proxy-Authorization: Basic '.base64_encode($username.':'.$password).CRLF;
 		endif;
 		$uri = Http::new($target);
-		$host = $uri->getHost();
+		$host = $uri->getHost() ?: throw new SocketException('Host is empty !');
 		$port = $uri->getPort();
 		$ip = inet_pton($host);
 		if($ip !== false and strlen($ip) === 16):
@@ -75,9 +73,9 @@ final class HttpSocketConnector implements SocketConnector {
 		elseif(array_pop($headers).array_pop($headers) !== strval(null)):
 			throw new SocketException('Wrong last HTTP header');
 		elseif($code != 200):
-			throw new SocketException($description,$code);
+			throw new SocketException($code.chr(32).$description,intval($code));
 		endif;
-		$headers = array_change_key_case(array_column(array_map(fn(string $item) : array => array_map('trim',explode(chr(58),$item)),$headers),1,0));
+		$headers = array_change_key_case(array_column(array_map(fn(string $item) : array => array_map('trim',explode(chr(58),$item,2)),$headers),1,0));
 		if(isset($headers['content-length'])):
 			$length = intval($headers['content-length']);
 			if($length > 0):
@@ -85,12 +83,18 @@ final class HttpSocketConnector implements SocketConnector {
 			endif;
 		endif;
 	}
-	public function __construct(private readonly SocketAddress | string $proxyAddress,private readonly ? string $username = null,private readonly ? string $password = null,private readonly ? SocketConnector $socketConnector = null){
+	public function __construct(private readonly string $proxyAddress,private readonly ? string $username = null,private readonly ? string $password = null,private ? object $connector = null){
+		$this->connector ??= socketConnector();
 	}
-	public function connect(SocketAddress | string $uri,? ConnectContext $context = null,? Cancellation $cancellation = null) : Socket {
-		$connector = $this->socketConnector ?? socketConnector();
-		$socket = $connector->connect($this->proxyAddress,$context,$cancellation);
+	public function connect(string $uri,ConnectContext $context = new ConnectContext,? Cancellation $cancellation = null,bool $secure = false) : Socket {
+		if($secure):
+			$context = $context->withTlsContext(new ClientTlsContext(Http::new($uri)->getHost()));
+		endif;
+		$socket = $this->connector->connect($this->proxyAddress,$context,$cancellation);
 		self::tunnel($socket,strval($uri),$this->username,$this->password,$cancellation);
+		if($secure):
+			$socket->setupTls($cancellation);
+		endif;
 		return $socket;
 	}
 }

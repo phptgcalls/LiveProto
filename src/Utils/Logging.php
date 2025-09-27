@@ -47,7 +47,7 @@ final class Logging {
 			echo '<p style = "color: '.$FG.'; background-color: '.$BG.';">'.implode(chr(0x20),$args).'</p>';
 		endif;
 	}
-	static public function log(string $name,mixed $text,int $level) : void {
+	static public function log(string $name,mixed $text,int $level = 0) : void {
 		static $log = null;
 		if(Tools::inDestructor()) return;
 		if(exists(self::$path) and getSize(self::$path) >= self::$maxsize):
