@@ -98,6 +98,11 @@ final class Messages extends Filter {
 			$args += ['reaction'=>$reaction];
 			return $event->getClient()->messages->sendReaction($peer,$event->message->id,...$args);
 		};
+		$event->paidReaction = function(int $count = 0x1,mixed ...$args) use($event) : bool {
+			$peer = $event->getPeer();
+			$random_id = intval(time() << 32) | random_int(0x0,0xffffffff);
+			return $event->getClient()-messages->sendPaidReaction($peer,$event->message->id,$count,$random_id,...$args);
+		};
 		$event->screenshot = function(array $reply_to = array()) use($event) : object {
 			$reply_to = $event->inputReplyToMessage($event->message->id,...$reply_to);
 			$peer = $event->getPeer();

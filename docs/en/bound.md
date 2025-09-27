@@ -264,6 +264,29 @@
 
 ---
 
+### paidReaction
+
+> Used to sends one or more paid Telegram Star reactions
+
+| Parameter | Type | Default | Description |
+| :---: | :---: | :---: | :--- |
+| `count` | `int` | `1` | The number of reactions you want to apply to the message |
+| `...args` | `mixed` | <kbd style="color : dodgerblue">optional</kbd> | Any additional parameters you give will be passed to the [sendPaidReaction](https://tl.liveproto.dev/#/method/messages.sendPaidReaction) |
+
+<details>
+<summary style="color : slateblue">Belongs to which handlers ?!</summary>
+
+- Messages 
+  - [`NewMessage`](en/handlers.md#NewMessage)
+  - [`MessageEdited`](en/handlers.md#MessageEdited)
+  - [`NewScheduledMessage`](en/handlers.md#NewScheduledMessage)
+
+- [`CallbackQuery`](en/handlers.md#CallbackQuery)
+
+</details>
+
+---
+
 ### answerCallback
 
 > Used to set the callback answer to a user button press ( bots only )

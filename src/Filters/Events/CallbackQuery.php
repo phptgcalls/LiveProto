@@ -118,6 +118,11 @@ final class CallbackQuery extends Filter {
 				throw new \Exception('This method is not available for this update');
 			endif;
 		};
+		$event->paidReaction = function(int $count = 0x1,mixed ...$args) use($event) : bool {
+			$peer = $event->getPeer();
+			$random_id = intval(time() << 32) | random_int(0x0,0xffffffff);
+			return $event->getClient()-messages->sendPaidReaction($peer,$event->id,$count,$random_id,...$args);
+		};
 		$event->answerCallback = function(int $cache,mixed ...$args) use($event) : bool {
 			return $event->getClient()->messages->setBotCallbackAnswer($event->query_id,$cache,...$args);
 		};
