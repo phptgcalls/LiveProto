@@ -1,6 +1,6 @@
 FROM php:8.4-cli
 
-ENV DEBIAN_FRONTEND = noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
     apt-get update; \
