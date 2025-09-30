@@ -20,7 +20,6 @@ RUN set -eux; \
     docker-php-ext-install -j"$(nproc)" mbstring; \
     docker-php-ext-install -j"$(nproc)" sockets; \
     docker-php-ext-install -j"$(nproc)" curl; \
-    docker-php-ext-install -j"$(nproc)" zlib; \
     docker-php-ext-install -j"$(nproc)" intl; \
     docker-php-ext-install -j"$(nproc)" pdo pdo_sqlite; \
 
