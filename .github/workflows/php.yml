@@ -1,124 +1,31 @@
-name: Build PHAR and upload to release
+name: Build and push Docker image
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to use ( example : v1.2.3 ) If empty, workflow will try to detect tag from event'
-        required: false
-        default: ''
-
-permissions:
-  contents: write
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
-    env:
-      PHP_VERSION: '8.3'
-      PHAR_TARGET_BASENAME: liveproto.phar
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@2.32.0
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.11.1
+
+      - name: Login to ghcr
+        uses: docker/login-action@v3.6.0
         with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, gmp
-          coverage: none
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --working-dir=.github
-
-      - name: Resolve TAG
-        id: resolve
-        env:
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_RELEASE_TAG: ${{ github.event.release.tag_name || '' }}
-        run: |
-          echo "Event: $GITHUB_EVENT_NAME"
-          # 1) If input.tag provided on manual run, prefer that
-          if [ -n "$INPUT_TAG" ]; then
-            TAG="$INPUT_TAG"
-            source="workflow_dispatch input"
-          # 2) If this was a release event, use the release tag
-          elif [ "$GITHUB_EVENT_NAME" = "release" ] && [ -n "$GITHUB_RELEASE_TAG" ]; then
-            TAG="$GITHUB_RELEASE_TAG"
-            source="release event"
-          # 3) If this was a tag push, extract tag from GITHUB_REF ( refs/tags/... )
-          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            TAG="${GITHUB_REF#refs/tags/}"
-            source="push tag"
-          else
-            echo "No tag could be determined automatically, Provide a tag with workflow_dispatch input 'tag' or trigger via a release / tag push"
-            exit 1
-          fi
-
-          echo "Resolved TAG=$TAG (from $source)"
-          echo "TAG=$TAG" >> $GITHUB_ENV    
-
-      - name: Set VERSION
-        id: set-version
-        run: |
-          TAG='${{ env.TAG }}'
-          VERSION="${TAG#v}"
-          VERSION="${VERSION#V}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Build PHAR
-        env:
-          VERSION: ${{ env.VERSION }}
-          PHAR_NAME: ${{ env.PHAR_TARGET_BASENAME }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${VERSION:-}" ]; then
-            echo "VERSION is empty — cannot continue"
-            exit 1
-          fi
-
-          OUT_DIR="v/$VERSION"
-          OUT_PATH="$OUT_DIR/$PHAR_NAME"
-
-          mkdir -p "$OUT_DIR"
-          rm -f "$OUT_PATH"
-
-          cat > build-phar.php <<'PHP'
-          <?php
-          $out = $argv[true];
-
-          $phar = new Phar($out);
-
-          $phar->startBuffering();
-
-          $phar->buildFromDirectory('.github/vendor');
-
-          $stub = $phar->createDefaultStub('autoload.php');
-
-          $phar->setStub($stub);
-
-          $phar->stopBuffering();
-
-          echo "PHAR created at $out\n";
-          PHP
-          php -d phar.readonly=0 build-phar.php "$OUT_PATH"
-
-      - name: Verify PHAR exists
-        run: |
-          ls -l "v/${{ env.VERSION }}/${{ env.PHAR_TARGET_BASENAME }}"
-          file "v/${{ env.VERSION }}/${{ env.PHAR_TARGET_BASENAME }}" || true
-
-      - name: Upload PHAR to the Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: softprops/action-gh-release@v2.2.1
+      - name: Build and push
+        uses: docker/build-push-action@v6.18.0
         with:
-          tag_name: ${{ env.TAG }}
-          files: v/${{ env.VERSION }}/${{ env.PHAR_TARGET_BASENAME }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/liveproto:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}//liveproto:latest
