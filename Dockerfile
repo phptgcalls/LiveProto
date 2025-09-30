@@ -1,10 +1,7 @@
-# Dockerfile (fixed)
 FROM php:8.4-cli
 
 ENV DEBIAN_FRONTEND = noninteractive
 
-# Install build tools & dev libs required to compile PHP extensions.
-# We keep this block separate so apt errors are easy to read.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -14,8 +11,6 @@ RUN set -eux; \
       libxml2-dev libonig-dev libsqlite3-dev libmagic-dev; \
     rm -rf /var/lib/apt/lists/*
 
-# Configure zip (if needed) and install extensions in small groups.
-# Installing in small groups gives clearer compile errors.
 RUN set -eux; \
     docker-php-ext-configure zip; \
     docker-php-ext-install -j"$(nproc)" zip; \
@@ -28,16 +23,14 @@ RUN set -eux; \
     docker-php-ext-install -j"$(nproc)" pdo pdo_sqlite; \
     docker-php-ext-install -j"$(nproc)" fileinfo
 
-# Composer (stable)
 RUN set -eux; \
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 WORKDIR /app
 
-# Install composer dependencies (if you want composer to run at build time)
-COPY composer.json composer.lock* /app/
+COPY .github/composer.json /app/
 RUN set -eux; \
-    composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader || true
+    composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
 COPY . /app
 
