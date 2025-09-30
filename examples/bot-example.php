@@ -4,12 +4,7 @@ declare(strict_types = 1);
 
 error_reporting(E_ALL);
 
-if(file_exists('liveproto.php') === false){
-	copy('https://installer.liveproto.dev/liveproto.php','liveproto.php');
-	require_once 'liveproto.php';
-} else {
-	require_once 'liveproto.phar';
-}
+require_once 'vendor/autoload.php';
 
 use Tak\Liveproto\Network\Client;
 
