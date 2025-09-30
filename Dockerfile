@@ -1,7 +1,7 @@
 # Dockerfile (fixed)
-FROM php:8.2-cli
+FROM php:8.4-cli
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND = noninteractive
 
 # Install build tools & dev libs required to compile PHP extensions.
 # We keep this block separate so apt errors are easy to read.
