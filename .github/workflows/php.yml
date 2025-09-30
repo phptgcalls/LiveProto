@@ -26,4 +26,4 @@ jobs:
         with:
           push: true
           tags: |
-            ocker.io/${{ secrets.DOCKERHUB_USERNAME }}/liveproto:main
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/liveproto:main
